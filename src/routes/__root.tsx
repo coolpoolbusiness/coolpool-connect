@@ -72,6 +72,7 @@ export const Route = createRootRoute({
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "default" },
       { name: "apple-mobile-web-app-title", content: "Coolpool" },
+      { name: "google-site-verification", content: "RsHmrg4BB-jzvMcOtzJKm28m-vZp1Mkj42WHPu5oV40" },
     ],
     links: [
       { rel: "manifest", href: "/manifest.json" },
@@ -82,6 +83,20 @@ export const Route = createRootRoute({
       { rel: "dns-prefetch", href: "https://checkout.razorpay.com" },
       { rel: "stylesheet", href: GOOGLE_FONTS_CSS },
       { rel: "stylesheet", href: appCss },
+    ],
+        scripts: [
+      {
+        src: "https://www.googletagmanager.com/gtag/js?id=G-3ZY0L2DCSZ",
+        async: true,
+      },
+      {
+        children: `
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-3ZY0L2DCSZ');
+        `,
+      },
     ],
   }),
   shellComponent: RootShell,
