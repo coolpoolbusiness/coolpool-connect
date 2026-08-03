@@ -39,11 +39,11 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Coolpool — Share the road, split the cost" },
+      { title: "Carpooling in Bangalore | Ride Sharing, Shared Cabs & Intercity Carpool Booking | Coolpool" },
       {
         name: "description",
         content:
-          "Find or host intercity rides with smart per-kilometer pricing. Book a single seat or the whole car.",
+          "Coolpool connects travelers with trusted carpool and ride-sharing options across India for daily commutes, airport transfers, and intercity travel.",
       },
     ],
   }),
