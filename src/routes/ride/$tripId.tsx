@@ -33,6 +33,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { HostAvatar } from "@/components/HostAvatar";
+import { StreetView360 } from "@/components/StreetView360";
 import { RidePrefChips } from "@/components/RidePrefChips";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -459,6 +460,19 @@ function RideInfoPage() {
             </div>
           )}
         </Card>
+
+        {typeof trip.toLat === "number" && typeof trip.toLng === "number" && (
+          <section>
+            <p className="mb-2 text-xs font-bold uppercase tracking-widest text-gray-500">
+              Drop-off point — look around
+            </p>
+            <StreetView360
+              lat={trip.toLat}
+              lng={trip.toLng}
+              label={`Drop-off · ${toLabel.split(",")[0]}`}
+            />
+          </section>
+        )}
 
         <Card className="overflow-hidden rounded-3xl border-gray-100 bg-white shadow-sm">
           {carImages.length > 0 && (

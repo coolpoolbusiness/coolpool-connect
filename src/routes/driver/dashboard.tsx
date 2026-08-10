@@ -128,6 +128,7 @@ import { mintTripCode } from "@/integrations/appwrite/trip-server";
 import { formatVehicleCode } from "@/lib/vehicleCode";
 import { compressImage } from "@/lib/image-compression";
 import { RoleSwitch } from "@/components/RoleSwitch";
+import { StreetView360 } from "@/components/StreetView360";
 import { getHostTier } from "@/lib/host-tier";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -277,6 +278,34 @@ function hostTripStatusDisplay(trip: Trip, expired: boolean): { label: string; c
   if (trip.status === "expired" || expired) return { label: "Expired", color: "default" };
   if (trip.status === "in_progress") return { label: "In progress", color: "processing" };
   return { label: "Scheduled", color: "processing" };
+}
+
+// Start-trip button timing. Phase 2: the button is VISIBLE early (with a live
+// countdown) but only CLICKABLE from 5 minutes before departure until 45
+// minutes after. `show:false` hides it entirely (non-scheduled or window fully
+// past).
+const START_OPENS_MIN = 5;
+const START_CLOSES_MIN = 45;
+function startTripState(
+  trip: Trip,
+  now: dayjs.Dayjs,
+): { show: boolean; enabled: boolean; label: string } {
+  if (trip.status !== "scheduled") return { show: false, enabled: false, label: "" };
+  const dep = dayjs(trip.departureAt);
+  const opens = dep.subtract(START_OPENS_MIN, "minute");
+  const closes = dep.add(START_CLOSES_MIN, "minute");
+  if (now.isAfter(closes)) return { show: false, enabled: false, label: "" };
+  if (now.isBefore(opens)) {
+    const mins = opens.diff(now, "minute");
+    const label =
+      mins >= 60
+        ? `Starts in ${Math.floor(mins / 60)}h ${mins % 60}m`
+        : mins >= 1
+          ? `Starts in ${mins}m`
+          : "Starts in <1m";
+    return { show: true, enabled: false, label };
+  }
+  return { show: true, enabled: true, label: "Start" };
 }
 
 function disabledTripDate(current: dayjs.Dayjs): boolean {
@@ -464,6 +493,13 @@ function DriverDashboardPage() {
   }, []);
 
   const handleStartTrip = (tripId: string) => {
+    // Enforce the start window even if the button is somehow clicked early.
+    const startTrip = trips.find((t) => t.id === tripId);
+    if (startTrip && !startTripState(startTrip, dayjs()).enabled) {
+      const opens = dayjs(startTrip.departureAt).subtract(START_OPENS_MIN, "minute");
+      message.info(`You can start this trip from ${opens.format("h:mm A")} (5 min before departure).`);
+      return;
+    }
     if (!navigator.geolocation) {
       message.error("Geolocation isn't supported on this device.");
       return;
@@ -3043,20 +3079,23 @@ function DriverDashboardPage() {
                                   </span>
                                 </div>
                                 <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                                  {item.status === "scheduled" &&
-                                    now.isAfter(dayjs(item.departureAt).subtract(15, "minute")) &&
-                                    !now.isAfter(dayjs(item.departureAt).add(45, "minute")) && (
+                                  {(() => {
+                                    const s = startTripState(item, now);
+                                    if (!s.show) return null;
+                                    return (
                                       <Button
                                         type="primary"
                                         size="small"
                                         icon={<PlayCircle size={14} />}
                                         loading={tripActionLoading === item.id}
-                                        className="rounded-xl bg-emerald-500 border-none"
+                                        disabled={!s.enabled}
+                                        className="rounded-xl bg-emerald-500 border-none disabled:opacity-60"
                                         onClick={() => handleStartTrip(item.id)}
                                       >
-                                        Start
+                                        {s.label}
                                       </Button>
-                                    )}
+                                    );
+                                  })()}
                                   {item.status === "in_progress" && (
                                     <Button
                                       type="primary"
@@ -3457,25 +3496,26 @@ function DriverDashboardPage() {
                                       )}
                                     </div>
                                     <div className="flex items-center gap-2 shrink-0">
-                                      {trip.status === "scheduled" &&
-                                        now.isAfter(
-                                          dayjs(trip.departureAt).subtract(15, "minute"),
-                                        ) &&
-                                        !now.isAfter(dayjs(trip.departureAt).add(45, "minute")) && (
+                                      {(() => {
+                                        const s = startTripState(trip, now);
+                                        if (!s.show) return null;
+                                        return (
                                           <Button
                                             type="primary"
                                             size="small"
                                             icon={<PlayCircle size={14} />}
                                             loading={tripActionLoading === trip.id}
-                                            className="rounded-xl bg-emerald-500 border-none"
+                                            disabled={!s.enabled}
+                                            className="rounded-xl bg-emerald-500 border-none disabled:opacity-60"
                                             onClick={(e) => {
                                               e.stopPropagation();
                                               handleStartTrip(trip.id);
                                             }}
                                           >
-                                            Start
+                                            {s.label}
                                           </Button>
-                                        )}
+                                        );
+                                      })()}
                                       {trip.status === "in_progress" && (
                                         <Button
                                           type="primary"
@@ -5406,8 +5446,10 @@ function DriverDashboardPage() {
                           <Navigation size={14} /> View full route
                         </button>
 
-                        {managingTrip.status === "scheduled" &&
-                          (now.isAfter(dayjs(managingTrip.departureAt).subtract(15, "minute")) ? (
+                        {(() => {
+                          const s = startTripState(managingTrip, now);
+                          if (!s.show) return null;
+                          return s.enabled ? (
                             <button
                               type="button"
                               onClick={() => handleStartTrip(managingTrip.id)}
@@ -5420,9 +5462,10 @@ function DriverDashboardPage() {
                           ) : (
                             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold !text-white/60">
                               <PlayCircle size={14} />
-                              Starts at {dayjs(managingTrip.departureAt).format("h:mm A")}
+                              {s.label} · {dayjs(managingTrip.departureAt).format("h:mm A")}
                             </span>
-                          ))}
+                          );
+                        })()}
 
                         {managingTrip.status === "in_progress" && (
                           <>
@@ -5458,6 +5501,21 @@ function DriverDashboardPage() {
                           ></div>
                         </div>
                       </div>
+
+                      {typeof managingTrip.fromLat === "number" &&
+                        typeof managingTrip.fromLng === "number" && (
+                          <div className="mt-4">
+                            <Text className="!text-white/80 font-medium block mb-2">
+                              Pickup point — 360° view
+                            </Text>
+                            <StreetView360
+                              lat={managingTrip.fromLat}
+                              lng={managingTrip.fromLng}
+                              label={`Pickup · ${managingTrip.fromLocation.split(",")[0]}`}
+                              heightClass="h-48"
+                            />
+                          </div>
+                        )}
                     </div>
                   </div>
 
