@@ -17,21 +17,33 @@ the app's server-function layer.
 
 Dumps land in `scripts/pg-migration/dump/` — **gitignored (hashes + PII), never commit**.
 
-### 🔨 Remaining application port (the real work, ~1.5–2 weeks)
+### ✅ Auth + core read layer built and proven (scripts/pg-migration/prove-*.mts)
 
-1. **DB layer** — `pg` client module + config (PG_URL), connection pooling
-2. **Repository port** — `src/data/appwrite-repository.ts` functions re-implemented
-   as SQL behind server functions, preserving every signature so ~30 call sites
-   don't change. Long-tail JSONB tables promoted to typed columns as they're ported
-3. **Auth** — phone+PIN login verifying migrated argon2 hashes; signup; JWT
-   session cookie; OTP flows re-pointed at `otp_codes` table; **Google OAuth
-   re-implemented directly** (new redirect URI must be added in Google Cloud
-   console — needs the owner's console session)
-4. **Files** — uploads/reads → S3 presigned URLs; migrate dumped files with
-   `aws s3 sync`, fill `files.s3_key`
-5. **Server functions already in the right shape** (payments, OTP, booking
-   finalizer, admin payouts) — swap their Appwrite calls for SQL
-6. **Full QA checklist re-run** — auth + money paths are blocking
+| Piece | Proof |
+|---|---|
+| `db.server.ts` — pg pool (PG_URL, RDS TLS toggle) | connects |
+| `auth.server.ts` — phone+PIN login on migrated argon2 hashes | `prove-login.mjs`: real Appwrite-style account → Postgres → login with original PIN, wrong PIN rejected |
+| `repository.server.ts` — 20 core read functions (trips, stops, bookings, seats, payouts, bank) | `prove-repository.mts`: 13/13 assertions against the loaded production dataset |
+
+### 🔨 Remaining application port (the real work)
+
+Progress: **schema ✅ · export/import ✅ · auth login ✅ · core reads ✅.**
+Still to do, each verifiable locally against the loaded Postgres:
+
+1. ✅ **DB layer** — done (`db.server.ts`)
+2. **Write functions** — create/update/delete for trips, bookings (+ seat
+   reservations, transactional), payouts, vehicles, drivers, profiles, banners,
+   reviews, bank accounts (~40 functions). Reads done (20).
+3. **Auth** — ✅ login proven; still: JWT session cookie issue/verify, signup
+   (insert user + argon2 hash), OTP flows re-pointed at `otp_codes`, admin-label
+   check, and **Google OAuth re-implemented directly** (new redirect URI in the
+   owner's Google Cloud console).
+4. **Files** — uploads/reads → S3 presigned URLs; `aws s3 sync` the dumped
+   files, fill `files.s3_key`.
+5. **Wire it in** — the ~23 files importing `@/data/appwrite-repository` switch
+   to the server-function layer backed by Postgres (signatures preserved).
+6. **Full QA checklist re-run** — auth + money paths are blocking before any
+   live cutover.
 
 ## Migration day (once the port is code-complete)
 
