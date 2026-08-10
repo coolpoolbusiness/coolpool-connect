@@ -1,9 +1,13 @@
 import { Client, Databases, Users } from "node-appwrite";
 
 function getServerConfig() {
+  // Portable default: reach Appwrite via the public domain (nginx fronts it),
+  // never a box-specific address — a migrated server must not silently point
+  // at the old machine.
   const endpoint =
+    process.env.VITE_APPWRITE_ENDPOINT ||
     process.env.APPWRITE_ENDPOINT ||
-    "http://appwrite-ljdtlive600781krllbzu915.187.127.156.240.sslip.io/v1";
+    "https://coolpool.in/v1";
   const projectId = process.env.APPWRITE_PROJECT_ID || "69f23e9d003845289bcc";
   const databaseId = process.env.APPWRITE_DATABASE_ID || "69f2e5f6000a532410c0";
   const apiKey = process.env.APPWRITE_API_KEY;
