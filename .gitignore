@@ -34,3 +34,6 @@ dist-ssr
 # AI tooling artifacts
 .codex/
 .playwright-cli/
+
+# Postgres migration dumps — user data + password hashes, NEVER commit
+scripts/pg-migration/dump/
