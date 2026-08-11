@@ -12,12 +12,10 @@ export function StreetView360({
   lat,
   lng,
   label,
-  heightClass = "h-56",
 }: {
   lat: number;
   lng: number;
   label?: string;
-  heightClass?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const panoRef = useRef<any>(null);
@@ -81,16 +79,14 @@ export function StreetView360({
         360° {label ?? "view"}
       </div>
       {noCoverage ? (
-        <div
-          className={`grid ${heightClass} w-full place-items-center bg-gray-50 text-center text-sm text-gray-400`}
-        >
+        <div className="grid aspect-square w-full place-items-center bg-gray-50 text-center text-sm text-gray-400">
           <div className="flex flex-col items-center gap-1 px-6">
             <ImageOff size={22} />
             <span>No 360° imagery available for this spot yet.</span>
           </div>
         </div>
       ) : (
-        <div ref={ref} className={`${heightClass} w-full bg-gray-100`} />
+        <div ref={ref} className="aspect-square w-full bg-gray-100" />
       )}
     </div>
   );

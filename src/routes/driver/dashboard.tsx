@@ -5552,7 +5552,6 @@ function DriverDashboardPage() {
                               lat={managingTrip.fromLat}
                               lng={managingTrip.fromLng}
                               label={`Pickup · ${managingTrip.fromLocation.split(",")[0]}`}
-                              heightClass="h-48"
                             />
                           </div>
                         )}
