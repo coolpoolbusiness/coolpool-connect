@@ -14,6 +14,8 @@ export interface AppwriteCollectionIds {
   reviews: string;
   tripShares: string;
   deletedAccounts: string;
+  memberVerifications: string;
+  noShowReports: string;
 }
 
 function optionalCollectionId(value: string | undefined): string {
@@ -103,6 +105,15 @@ export function getCollectionIds(): AppwriteCollectionIds {
       import.meta.env.VITE_APPWRITE_COLLECTION_DELETED_ACCOUNTS ||
       process.env.APPWRITE_COLLECTION_DELETED_ACCOUNTS ||
       "coolpool_deleted_accounts",
+    // Fixed IDs created by scripts/create-verification-collections.mjs.
+    memberVerifications:
+      import.meta.env.VITE_APPWRITE_COLLECTION_MEMBER_VERIFICATIONS ||
+      process.env.APPWRITE_COLLECTION_MEMBER_VERIFICATIONS ||
+      "coolpool_member_verifications",
+    noShowReports:
+      import.meta.env.VITE_APPWRITE_COLLECTION_NO_SHOW_REPORTS ||
+      process.env.APPWRITE_COLLECTION_NO_SHOW_REPORTS ||
+      "coolpool_no_show_reports",
   };
 }
 

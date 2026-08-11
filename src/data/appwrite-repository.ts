@@ -2061,3 +2061,135 @@ export async function updateDriverRatingAggregate(hostUserId: string): Promise<v
     rating_count: reviews.length,
   });
 }
+
+// ── Phase 2: private photo uploads + verification/no-show records ─────────────
+
+/** Upload a photo to the private (uploader-readable only) docs bucket. Returns
+ *  the file id. Admins view it via the adminGetPrivateFile server function. */
+export async function uploadPrivatePhoto(userId: string, file: File): Promise<string> {
+  const compressed = await (await import("@/lib/image-compression")).compressImage(file);
+  const uploaded = await storage.createFile(appwriteConfig.driverDocsBucketId, ID.unique(), compressed, [
+    Permission.read(Role.user(userId)),
+    Permission.delete(Role.user(userId)),
+  ]);
+  return uploaded.$id;
+}
+
+export interface MemberVerification {
+  id: string;
+  userId: string;
+  selfieFileId: string | null;
+  status: "pending" | "approved" | "rejected";
+  submittedAt: string | null;
+  reviewedAt: string | null;
+  adminNote: string | null;
+}
+
+function toMemberVerification(d: any): MemberVerification {
+  return {
+    id: d.$id,
+    userId: String(d.user_id || ""),
+    selfieFileId: d.selfie_file_id ? String(d.selfie_file_id) : null,
+    status: (String(d.status || "pending") as MemberVerification["status"]),
+    submittedAt: d.submitted_at ? String(d.submitted_at) : null,
+    reviewedAt: d.reviewed_at ? String(d.reviewed_at) : null,
+    adminNote: d.admin_note ? String(d.admin_note) : null,
+  };
+}
+
+/** The caller's own verification row (doc id == userId), or null. */
+export async function getMyMemberVerification(userId: string): Promise<MemberVerification | null> {
+  const c = ids();
+  try {
+    const doc = await databases.getDocument(appwriteConfig.databaseId, c.memberVerifications, userId);
+    return toMemberVerification(doc);
+  } catch {
+    return null;
+  }
+}
+
+/** Submit / resubmit a selfie for verification (doc id == userId, upserted). */
+export async function submitSelfieVerification(input: {
+  userId: string;
+  selfieFileId: string;
+  displayName?: string;
+  phone?: string;
+}): Promise<MemberVerification> {
+  const c = ids();
+  const payload = {
+    user_id: input.userId,
+    selfie_file_id: input.selfieFileId,
+    status: "pending",
+    display_name: input.displayName ?? null,
+    phone: input.phone ?? null,
+    submitted_at: new Date().toISOString(),
+  };
+  const perms = [
+    Permission.read(Role.user(input.userId)),
+    Permission.update(Role.user(input.userId)),
+    Permission.delete(Role.user(input.userId)),
+  ];
+  try {
+    const doc = await databases.createDocument(
+      appwriteConfig.databaseId,
+      c.memberVerifications,
+      input.userId,
+      payload,
+      perms,
+    );
+    return toMemberVerification(doc);
+  } catch {
+    // Row exists — update it (reset to pending with the new selfie).
+    const doc = await databases.updateDocument(
+      appwriteConfig.databaseId,
+      c.memberVerifications,
+      input.userId,
+      payload,
+    );
+    return toMemberVerification(doc);
+  }
+}
+
+/** Host files a guest-no-show report with a GPS-stamped photo. */
+export async function createNoShowReport(input: {
+  bookingId: string;
+  tripId: string;
+  hostId: string;
+  travelerId?: string;
+  photoFileId: string;
+  lat?: number | null;
+  lng?: number | null;
+  passengerName?: string;
+}): Promise<void> {
+  const c = ids();
+  await databases.createDocument(
+    appwriteConfig.databaseId,
+    c.noShowReports,
+    ID.unique(),
+    {
+      booking_id: input.bookingId,
+      trip_id: input.tripId,
+      host_id: input.hostId,
+      traveler_id: input.travelerId ?? null,
+      photo_file_id: input.photoFileId,
+      lat: input.lat ?? null,
+      lng: input.lng ?? null,
+      captured_at: new Date().toISOString(),
+      status: "open",
+      passenger_name: input.passengerName ?? null,
+    },
+    [Permission.read(Role.user(input.hostId)), Permission.update(Role.user(input.hostId))],
+  );
+}
+
+/** No-show reports the host has already filed for a trip (to hide the button). */
+export async function listNoShowReportsByTrip(tripId: string): Promise<
+  { bookingId: string; status: string }[]
+> {
+  const c = ids();
+  const res = await databases.listDocuments(appwriteConfig.databaseId, c.noShowReports, [
+    Query.equal("trip_id", tripId),
+    Query.limit(100),
+  ]);
+  return res.documents.map((d: any) => ({ bookingId: String(d.booking_id || ""), status: String(d.status || "open") }));
+}

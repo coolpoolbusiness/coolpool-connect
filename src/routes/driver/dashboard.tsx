@@ -112,6 +112,8 @@ import {
   updateDriverPhoto,
   getExistingReview,
   listReviewsForUser,
+  uploadPrivatePhoto,
+  createNoShowReport,
   type CreateTeamDriverInput,
 } from "@/data/appwrite-repository";
 import { PayoutsPanel } from "@/components/driver/PayoutsPanel";
@@ -129,6 +131,7 @@ import { formatVehicleCode } from "@/lib/vehicleCode";
 import { compressImage } from "@/lib/image-compression";
 import { RoleSwitch } from "@/components/RoleSwitch";
 import { StreetView360 } from "@/components/StreetView360";
+import { PhotoCapture, getCurrentPosition } from "@/components/PhotoCapture";
 import { getHostTier } from "@/lib/host-tier";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -467,6 +470,14 @@ function DriverDashboardPage() {
   const [otpInputs, setOtpInputs] = useState<Record<string, string>>({});
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [noShowId, setNoShowId] = useState<string | null>(null);
+  const [noShow, setNoShow] = useState<{
+    bookingId: string;
+    passengerName: string;
+    tripId: string;
+    travelerId?: string;
+    file: File | null;
+    submitting: boolean;
+  } | null>(null);
   const [liveTripId, setLiveTripId] = useState<string | null>(null);
   const [tripActionLoading, setTripActionLoading] = useState<string | null>(null);
   const [now, setNow] = useState(() => dayjs());
@@ -628,15 +639,44 @@ function DriverDashboardPage() {
     }
   };
 
-  const confirmMarkNoShow = (bookingId: string, passengerName: string) => {
-    Modal.confirm({
-      title: "Mark as no-show?",
-      content: `Confirm that ${passengerName || "this passenger"} did not show up for this trip. This cannot be verified with an OTP afterwards.`,
-      okText: "Mark no-show",
-      okButtonProps: { danger: true },
-      cancelText: "Cancel",
-      onOk: () => handleSetBookingStatus(bookingId, "no_show"),
-    });
+  // Guest no-show now requires GPS + photo proof (Phase 2). Opens the capture
+  // modal; the actual status change happens after the proof is filed.
+  const confirmMarkNoShow = (
+    bookingId: string,
+    passengerName: string,
+    tripId: string,
+    travelerId?: string,
+  ) => {
+    setNoShow({ bookingId, passengerName, tripId, travelerId, file: null, submitting: false });
+  };
+
+  const submitNoShowProof = async () => {
+    if (!noShow || !user) return;
+    if (!noShow.file) {
+      message.error("Take a photo at the pickup point as proof.");
+      return;
+    }
+    setNoShow((s) => (s ? { ...s, submitting: true } : s));
+    try {
+      const pos = await getCurrentPosition();
+      const photoFileId = await uploadPrivatePhoto(user.$id, noShow.file);
+      await createNoShowReport({
+        bookingId: noShow.bookingId,
+        tripId: noShow.tripId,
+        hostId: user.$id,
+        travelerId: noShow.travelerId,
+        photoFileId,
+        lat: pos?.lat ?? null,
+        lng: pos?.lng ?? null,
+        passengerName: noShow.passengerName,
+      });
+      await handleSetBookingStatus(noShow.bookingId, "no_show");
+      message.success("No-show recorded with photo proof.");
+      setNoShow(null);
+    } catch (err) {
+      message.error(err instanceof Error ? err.message : "Couldn't file the no-show proof.");
+      setNoShow((s) => (s ? { ...s, submitting: false } : s));
+    }
   };
   const publishViaWizard = (result: WizardResult) => {
     if (!user?.$id) {
@@ -5747,7 +5787,14 @@ function DriverDashboardPage() {
                                     </div>
                                     <button
                                       type="button"
-                                      onClick={() => confirmMarkNoShow(b.id, b.passengerName)}
+                                      onClick={() =>
+                                        confirmMarkNoShow(
+                                          b.id,
+                                          b.passengerName,
+                                          b.tripId,
+                                          b.travelerId,
+                                        )
+                                      }
                                       className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-gray-400 hover:text-rose-600 transition-colors"
                                     >
                                       <UserX size={12} />
@@ -6726,6 +6773,39 @@ function DriverDashboardPage() {
                 </div>
               </div>
             </Form>
+          </div>
+        )}
+      </Modal>
+
+      <Modal
+        open={!!noShow}
+        title="Report guest no-show"
+        onCancel={() => (noShow?.submitting ? null : setNoShow(null))}
+        footer={null}
+        destroyOnClose
+        centered
+      >
+        {noShow && (
+          <div className="flex flex-col items-center gap-4 py-2">
+            <p className="text-center text-sm text-gray-600">
+              Take a photo at the pickup point as proof that{" "}
+              <span className="font-semibold">{noShow.passengerName || "the passenger"}</span> didn't
+              show up. Your location is captured with the photo for admin review.
+            </p>
+            <PhotoCapture
+              facing="environment"
+              label="Take proof photo"
+              onCapture={(f) => setNoShow((s) => (s ? { ...s, file: f } : s))}
+              disabled={noShow.submitting}
+            />
+            <button
+              type="button"
+              onClick={submitNoShowProof}
+              disabled={!noShow.file || noShow.submitting}
+              className="w-full max-w-xs rounded-2xl bg-rose-600 py-3 text-sm font-bold text-white shadow disabled:opacity-50"
+            >
+              {noShow.submitting ? "Filing proof…" : "Submit & mark no-show"}
+            </button>
           </div>
         )}
       </Modal>

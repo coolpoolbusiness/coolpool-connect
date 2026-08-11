@@ -5,7 +5,7 @@
 // synthetic phone email and never reach this resolver (login tries the
 // synthetic email first).
 import { createServerFn } from "@tanstack/react-start";
-import { Client, Users, Account, Databases, Query, ID, Permission, Role } from "node-appwrite";
+import { Client, Users, Account, Databases, Storage, Query, ID, Permission, Role } from "node-appwrite";
 import { normalizeEmail, normalizeLicense, normalizePhone } from "@/lib/identity-normalizers";
 import { formatMemberCode, type MemberCodeRole } from "@/lib/memberCode";
 import { nextMemberCodeSequence } from "@/integrations/appwrite/member-code-counter.server";
@@ -715,6 +715,106 @@ export const adminUpdateVehicleVerification = createServerFn({ method: "POST" })
     await new Databases(adminClient()).updateDocument(db, col, data.vehicleId, {
       verification_status: data.status,
       verification_note: data.note ?? null,
+    });
+    return { ok: true };
+  });
+
+// ── Phase 2: admin review of selfie verifications + no-show reports ───────────
+
+function verifyEnv() {
+  const db = readEnv("VITE_APPWRITE_DATABASE_ID") || readEnv("APPWRITE_DATABASE_ID");
+  return {
+    db,
+    memberCol:
+      readEnv("VITE_APPWRITE_COLLECTION_MEMBER_VERIFICATIONS") || "coolpool_member_verifications",
+    noShowCol: readEnv("VITE_APPWRITE_COLLECTION_NO_SHOW_REPORTS") || "coolpool_no_show_reports",
+    docsBucket:
+      readEnv("VITE_APPWRITE_DRIVER_DOCS_BUCKET_ID") ||
+      readEnv("APPWRITE_DRIVER_DOCS_BUCKET_ID") ||
+      "69f312e500186db2d785",
+  };
+}
+
+/** Admin-only: fetch a private file's bytes with the API key and return a
+ *  data URL, so admins can view selfies / no-show photos the browser can't
+ *  read directly (files are uploader-permission only). */
+export const adminGetPrivateFile = createServerFn({ method: "POST" })
+  .inputValidator((input: { jwt: string; fileId: string }) => ({
+    jwt: String(input?.jwt ?? "").trim(),
+    fileId: String(input?.fileId ?? "").trim(),
+  }))
+  .handler(async ({ data }): Promise<{ dataUrl: string }> => {
+    await assertAdmin(data.jwt);
+    if (!data.fileId) throw new Error("Missing file id.");
+    const { docsBucket } = verifyEnv();
+    const storage = new Storage(adminClient());
+    const buf = await storage.getFileView(docsBucket, data.fileId);
+    const b64 = Buffer.from(buf as ArrayBuffer).toString("base64");
+    // Compressed uploads are JPEG/PNG; browsers sniff from the bytes anyway.
+    return { dataUrl: `data:image/jpeg;base64,${b64}` };
+  });
+
+export const adminListMemberVerifications = createServerFn({ method: "POST" })
+  .inputValidator((input: { jwt: string }) => ({ jwt: String(input?.jwt ?? "").trim() }))
+  .handler(async ({ data }): Promise<any[]> => {
+    await assertAdmin(data.jwt);
+    const { db, memberCol } = verifyEnv();
+    const res = await new Databases(adminClient()).listDocuments(db, memberCol, [
+      Query.orderDesc("submitted_at"),
+      Query.limit(200),
+    ]);
+    return res.documents;
+  });
+
+export const adminSetMemberVerification = createServerFn({ method: "POST" })
+  .inputValidator((input: { jwt: string; userId: string; status: string; note?: string | null }) => ({
+    jwt: String(input?.jwt ?? "").trim(),
+    userId: String(input?.userId ?? "").trim(),
+    status: ["approved", "rejected", "pending"].includes(String(input?.status))
+      ? String(input.status)
+      : "pending",
+    note: input?.note == null ? null : String(input.note).trim(),
+  }))
+  .handler(async ({ data }): Promise<{ ok: boolean }> => {
+    await assertAdmin(data.jwt);
+    if (!data.userId) throw new Error("Missing user.");
+    const { db, memberCol } = verifyEnv();
+    await new Databases(adminClient()).updateDocument(db, memberCol, data.userId, {
+      status: data.status,
+      reviewed_at: new Date().toISOString(),
+      ...(data.note ? { admin_note: data.note } : {}),
+    });
+    return { ok: true };
+  });
+
+export const adminListNoShowReports = createServerFn({ method: "POST" })
+  .inputValidator((input: { jwt: string }) => ({ jwt: String(input?.jwt ?? "").trim() }))
+  .handler(async ({ data }): Promise<any[]> => {
+    await assertAdmin(data.jwt);
+    const { db, noShowCol } = verifyEnv();
+    const res = await new Databases(adminClient()).listDocuments(db, noShowCol, [
+      Query.orderDesc("captured_at"),
+      Query.limit(200),
+    ]);
+    return res.documents;
+  });
+
+export const adminSetNoShowStatus = createServerFn({ method: "POST" })
+  .inputValidator((input: { jwt: string; reportId: string; status: string; note?: string | null }) => ({
+    jwt: String(input?.jwt ?? "").trim(),
+    reportId: String(input?.reportId ?? "").trim(),
+    status: ["open", "resolved", "dismissed"].includes(String(input?.status))
+      ? String(input.status)
+      : "open",
+    note: input?.note == null ? null : String(input.note).trim(),
+  }))
+  .handler(async ({ data }): Promise<{ ok: boolean }> => {
+    await assertAdmin(data.jwt);
+    if (!data.reportId) throw new Error("Missing report.");
+    const { db, noShowCol } = verifyEnv();
+    await new Databases(adminClient()).updateDocument(db, noShowCol, data.reportId, {
+      status: data.status,
+      ...(data.note ? { admin_note: data.note } : {}),
     });
     return { ok: true };
   });

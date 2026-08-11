@@ -2,9 +2,14 @@ import { account } from "@/integrations/appwrite/client";
 import {
   adminCreatePayoutEntry,
   adminCreateUser,
+  adminGetPrivateFile,
   adminGetUserCodes,
+  adminListMemberVerifications,
+  adminListNoShowReports,
   adminListPayoutRequests,
   adminResetPassword,
+  adminSetMemberVerification,
+  adminSetNoShowStatus,
   adminUpdatePayoutRequestStatus,
 } from "@/integrations/appwrite/account-server";
 import type { PayoutRequest, PayoutStatus } from "@/lib/domain";
@@ -104,4 +109,39 @@ export async function createPayoutEntryAsAdmin(input: {
     adminCreatePayoutEntry({ data: { jwt, ...input } }),
     "Recording the payment is taking too long. Please reload and try again.",
   );
+}
+
+// ── Phase 2 verification admin wrappers ──────────────────────────────────────
+export async function adminGetPrivateFileUrl(fileId: string): Promise<string> {
+  const { jwt } = await account.createJWT();
+  const res = await adminGetPrivateFile({ data: { jwt, fileId } });
+  return res.dataUrl;
+}
+
+export async function listMemberVerificationsAsAdmin(): Promise<any[]> {
+  const { jwt } = await account.createJWT();
+  return adminListMemberVerifications({ data: { jwt } });
+}
+
+export async function setMemberVerificationAsAdmin(
+  userId: string,
+  status: "approved" | "rejected" | "pending",
+  note?: string | null,
+): Promise<void> {
+  const { jwt } = await account.createJWT();
+  await adminSetMemberVerification({ data: { jwt, userId, status, note } });
+}
+
+export async function listNoShowReportsAsAdmin(): Promise<any[]> {
+  const { jwt } = await account.createJWT();
+  return adminListNoShowReports({ data: { jwt } });
+}
+
+export async function setNoShowStatusAsAdmin(
+  reportId: string,
+  status: "open" | "resolved" | "dismissed",
+  note?: string | null,
+): Promise<void> {
+  const { jwt } = await account.createJWT();
+  await adminSetNoShowStatus({ data: { jwt, reportId, status, note } });
 }
