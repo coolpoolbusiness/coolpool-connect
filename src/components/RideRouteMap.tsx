@@ -11,6 +11,9 @@ interface RideRouteMapProps {
   polyline: string;
   isAirportDrop?: boolean;
   liveLocation?: { lat: number; lng: number; heading?: number | null } | null;
+  /** Size classes for the (non-fullscreen) container. Defaults to a fixed
+   *  height; pass "aspect-square w-full" for a square. */
+  sizeClassName?: string;
 }
 
 // Top-view car on a soft white halo — readable on any map background. The car
@@ -46,6 +49,7 @@ export function RideRouteMap({
   polyline,
   isAirportDrop,
   liveLocation,
+  sizeClassName = "h-48",
 }: RideRouteMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const googleMapRef = useRef<any>(null);
@@ -315,7 +319,7 @@ export function RideRouteMap({
       className={
         fullscreen
           ? "fixed inset-0 z-[2000] bg-black"
-          : "w-full h-48 rounded-2xl overflow-hidden border border-gray-100 shadow-sm relative"
+          : `w-full ${sizeClassName} rounded-2xl overflow-hidden border border-gray-100 shadow-sm relative`
       }
     >
       <div ref={mapRef} className="w-full h-full" />

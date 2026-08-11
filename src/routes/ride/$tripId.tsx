@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/select";
 import { HostAvatar } from "@/components/HostAvatar";
 import { StreetView360 } from "@/components/StreetView360";
+import { RideRouteMap } from "@/components/RideRouteMap";
 import { RidePrefChips } from "@/components/RidePrefChips";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -100,6 +101,7 @@ function RideInfoPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [carImageIdx, setCarImageIdx] = useState(0);
+  const [locView, setLocView] = useState<"street" | "route">("street");
   // Rider-selected segment for shared links with no preset segment (multi-stop trips).
   const [pickedFromIndex, setPickedFromIndex] = useState<number | null>(null);
   const [pickedToIndex, setPickedToIndex] = useState<number | null>(null);
@@ -463,14 +465,50 @@ function RideInfoPage() {
 
         {typeof trip.toLat === "number" && typeof trip.toLng === "number" && (
           <section>
-            <p className="mb-2 text-xs font-bold uppercase tracking-widest text-gray-500">
-              Drop-off point — look around
-            </p>
-            <StreetView360
-              lat={trip.toLat}
-              lng={trip.toLng}
-              label={`Drop-off · ${toLabel.split(",")[0]}`}
-            />
+            {/* Segmented toggle — 360° drop-off (default) ↔ route map. Both
+                render in the same square box below. */}
+            <div className="relative mb-3 grid grid-cols-2 gap-1 rounded-full border border-border bg-[#f4d8f9] p-1">
+              <span
+                aria-hidden
+                className="absolute top-1 bottom-1 left-1 w-[calc(50%-0.25rem)] rounded-full bg-white shadow-sm transition-transform duration-300 ease-out"
+                style={{ transform: locView === "route" ? "translateX(100%)" : "translateX(0)" }}
+              />
+              <button
+                type="button"
+                onClick={() => setLocView("street")}
+                className={`relative z-10 rounded-full py-2 text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${
+                  locView === "street" ? "text-primary" : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                360° Drop-off
+              </button>
+              <button
+                type="button"
+                onClick={() => setLocView("route")}
+                className={`relative z-10 rounded-full py-2 text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${
+                  locView === "route" ? "text-primary" : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                Route map
+              </button>
+            </div>
+
+            {locView === "street" ? (
+              <StreetView360
+                lat={trip.toLat}
+                lng={trip.toLng}
+                label={`Drop-off · ${toLabel.split(",")[0]}`}
+              />
+            ) : (
+              <RideRouteMap
+                fromLat={trip.fromLat}
+                fromLng={trip.fromLng}
+                toLat={trip.toLat}
+                toLng={trip.toLng}
+                polyline={trip.polyline ?? ""}
+                sizeClassName="aspect-square"
+              />
+            )}
           </section>
         )}
 
