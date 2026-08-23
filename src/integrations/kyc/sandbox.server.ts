@@ -1,18 +1,23 @@
-// SERVER-ONLY. KYC verification via Sandbox.co.in (api.sandbox.co.in).
-// Verifies driving licence, vehicle RC, and Aadhaar (OTP eKYC) against
-// government registries. Credentials come from env (SANDBOX_API_KEY /
-// SANDBOX_API_SECRET) and NEVER reach the browser. Every call here is a
-// billable, real-registry request — callers must gate on user consent.
+// SERVER-ONLY. KYC verification via Sandbox.co.in.
+// Sandbox provides Aadhaar OKYC (OTP eKYC), PAN, bank, and DigiLocker — but
+// NOT direct driving-licence / vehicle-RC number APIs (those need DigiLocker
+// document pull or a different provider). This module covers Aadhaar.
 //
-// Auth model: POST /authenticate with the key+secret returns a short-lived
-// access_token; that token authorizes the KYC endpoints. We cache it in-process.
+// Credentials come from env (SANDBOX_API_KEY / SANDBOX_API_SECRET) and never
+// reach the browser. SANDBOX_ENV=test routes to the free test sandbox
+// (test-api.sandbox.co.in) which returns sample data without billing or
+// touching real Aadhaar records; anything else uses production.
 
 function readEnv(name: string): string {
   return (typeof process !== "undefined" ? (process.env?.[name] ?? "") : "").trim();
 }
 
-const BASE = "https://api.sandbox.co.in";
-const API_VERSION = "2.0";
+function baseUrl(): string {
+  return readEnv("SANDBOX_ENV") === "test"
+    ? "https://test-api.sandbox.co.in"
+    : "https://api.sandbox.co.in";
+}
+const API_VERSION = "1.0.0";
 
 export function kycConfigured(): boolean {
   return !!readEnv("SANDBOX_API_KEY") && !!readEnv("SANDBOX_API_SECRET");
@@ -24,11 +29,8 @@ async function accessToken(): Promise<string> {
   const key = readEnv("SANDBOX_API_KEY");
   const secret = readEnv("SANDBOX_API_SECRET");
   if (!key || !secret) throw new Error("KYC provider is not configured on the server.");
-  // Tokens are valid ~24h; refresh hourly to be safe.
-  if (cachedToken && Date.now() - cachedToken.fetchedAt < 55 * 60_000) {
-    return cachedToken.token;
-  }
-  const res = await fetch(`${BASE}/authenticate`, {
+  if (cachedToken && Date.now() - cachedToken.fetchedAt < 55 * 60_000) return cachedToken.token;
+  const res = await fetch(`${baseUrl()}/authenticate`, {
     method: "POST",
     headers: { "x-api-key": key, "x-api-secret": secret, "x-api-version": API_VERSION },
   });
@@ -42,22 +44,19 @@ async function accessToken(): Promise<string> {
 }
 
 async function kycPost(path: string, body: Record<string, unknown>): Promise<any> {
-  const key = readEnv("SANDBOX_API_KEY");
   const token = await accessToken();
-  const res = await fetch(`${BASE}${path}`, {
+  const res = await fetch(`${baseUrl()}${path}`, {
     method: "POST",
     headers: {
       Authorization: token,
-      "x-api-key": key,
+      "x-api-key": readEnv("SANDBOX_API_KEY"),
       "x-api-version": API_VERSION,
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),
   });
   const json: any = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(json?.message || `Verification request failed (${res.status}).`);
-  }
+  if (!res.ok) throw new Error(json?.message || `Verification request failed (${res.status}).`);
   return json;
 }
 
@@ -67,61 +66,44 @@ export function maskId(value: string): string {
   return v.length <= 4 ? v : `••••${v.slice(-4)}`;
 }
 
-export interface VerifyResult {
-  ok: boolean;
-  name?: string | null;
-  raw?: unknown;
+export interface AadhaarOtpResult {
+  referenceId: string;
   message?: string;
 }
 
-/** Driving licence verification. Needs the DL number + holder's date of birth. */
-export async function verifyDrivingLicence(dlNumber: string, dob: string): Promise<VerifyResult> {
-  const json = await kycPost("/kyc/driving-license/search", {
-    "@entity": "in.co.sandbox.kyc.driving_license.search.request",
-    driving_license_number: dlNumber.trim().toUpperCase(),
-    date_of_birth: dob, // DD/MM/YYYY
-    consent: "y",
-    reason: "Host onboarding verification for Coolpool",
-  });
-  const data = json?.data ?? json;
-  const name = data?.name ?? data?.holder_name ?? null;
-  return { ok: !!name || data?.status === "valid", name, raw: data };
-}
-
-/** Vehicle registration certificate (RC) verification by plate number. */
-export async function verifyVehicleRC(rcNumber: string): Promise<VerifyResult> {
-  const json = await kycPost("/kyc/rc/search", {
-    "@entity": "in.co.sandbox.kyc.rc.search.request",
-    rc_number: rcNumber.trim().toUpperCase(),
-    consent: "y",
-    reason: "Host vehicle verification for Coolpool",
-  });
-  const data = json?.data ?? json;
-  const owner = data?.owner_name ?? data?.owner ?? null;
-  return { ok: !!owner, name: owner, raw: data };
-}
-
 /** Aadhaar eKYC — step 1: send OTP to the Aadhaar-linked mobile. */
-export async function sendAadhaarOtp(aadhaar: string): Promise<{ refId: string }> {
+export async function sendAadhaarOtp(aadhaar: string): Promise<AadhaarOtpResult> {
   const json = await kycPost("/kyc/aadhaar/okyc/otp", {
     "@entity": "in.co.sandbox.kyc.aadhaar.okyc.otp.request",
-    aadhaar_number: aadhaar.replace(/\s/g, ""),
-    consent: "y",
+    aadhaar_number: aadhaar.replace(/\D/g, ""),
+    consent: "Y",
     reason: "Host identity verification for Coolpool",
   });
-  const refId = json?.data?.ref_id ?? json?.ref_id;
-  if (!refId) throw new Error("Could not send Aadhaar OTP. Check the number and try again.");
-  return { refId: String(refId) };
+  const referenceId = json?.data?.reference_id;
+  if (referenceId == null) {
+    throw new Error("Could not send Aadhaar OTP. Check the number and try again.");
+  }
+  return { referenceId: String(referenceId), message: json?.data?.message };
 }
 
-/** Aadhaar eKYC — step 2: verify the OTP; returns the registry name on success. */
-export async function verifyAadhaarOtp(refId: string, otp: string): Promise<VerifyResult> {
+export interface AadhaarVerifyResult {
+  ok: boolean;
+  name: string | null;
+  gender: string | null;
+}
+
+/** Aadhaar eKYC — step 2: verify the OTP. Returns only name/gender — the full
+ *  eKYC payload (address, photo, hashes) is deliberately NOT returned/stored. */
+export async function verifyAadhaarOtp(
+  referenceId: string,
+  otp: string,
+): Promise<AadhaarVerifyResult> {
   const json = await kycPost("/kyc/aadhaar/okyc/otp/verify", {
     "@entity": "in.co.sandbox.kyc.aadhaar.okyc.request",
-    ref_id: refId,
+    reference_id: referenceId,
     otp: otp.trim(),
   });
   const data = json?.data ?? json;
-  const name = data?.name ?? null;
-  return { ok: !!name, name, raw: { name: data?.name, gender: data?.gender } }; // never store full Aadhaar payload
+  const valid = String(data?.status || "").toUpperCase() === "VALID" || !!data?.name;
+  return { ok: valid, name: data?.name ?? null, gender: data?.gender ?? null };
 }
