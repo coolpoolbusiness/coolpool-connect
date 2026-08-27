@@ -550,14 +550,14 @@ function AuthPage() {
                     value={phone}
                     placeholder="+91 98765 43210"
                     onChange={(e) => setPhone(e.target.value)}
-                    className="h-12 rounded-3xl border-border/80 bg-background/80 form-control-lg placeholder:text-sm"
+                    className="h-16 rounded-3xl border-border/80 bg-background/80 px-5 text-xl tracking-wide placeholder:text-base"
                   />
                 </div>
                 <Button
                   type="submit"
                   variant="hero"
                   size="lg"
-                  className="w-full rounded-3xl h-11 font-semibold shadow-glow mt-2"
+                  className="w-full rounded-3xl h-14 text-base font-semibold shadow-glow mt-2"
                   disabled={busy}
                 >
                   {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : "Start Hosting"}

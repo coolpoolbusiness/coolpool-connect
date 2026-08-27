@@ -321,7 +321,7 @@
  * assign link-blue after Tailwind layers, so label disappears on the gradient.
  */
 a.inline-flex.bg-gradient-primary {
-  color: var(--color-primary-foreground) !important;
+  color: #ffffff !important;
   text-decoration: none !important;
 }
 a.inline-flex.bg-gradient-primary:visited,
@@ -329,7 +329,7 @@ a.inline-flex.bg-gradient-primary:hover,
 a.inline-flex.bg-gradient-primary:active,
 a.inline-flex.bg-gradient-primary:focus,
 a.inline-flex.bg-gradient-primary:focus-visible {
-  color: var(--color-primary-foreground) !important;
+  color: #ffffff !important;
 }
 
 /* Form validation messages — responsive sizing */
