@@ -6,6 +6,7 @@ import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SelfieVerificationCard } from "@/components/SelfieVerificationCard";
+import { AadhaarVerificationCard } from "@/components/AadhaarVerificationCard";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -369,6 +370,7 @@ function TripsPage() {
         )}
 
         {user && <SelfieVerificationCard className="mb-4" />}
+        {user && <AadhaarVerificationCard className="mb-4" />}
 
         {!user && !authLoading ? (
           <Card className="p-10 rounded-3xl text-center shadow-card border-border/60 bg-white/80">
