@@ -22,7 +22,7 @@ import {
   listHostTrips,
   listHostBookings,
 } from "@/data/appwrite-repository";
-import { verifyBankAccountServer } from "@/integrations/kyc/bank.server";
+import { verifyBankAccountServer } from "@/integrations/kyc/bank-verify";
 import {
   hostNetEarnings,
   platformFee,

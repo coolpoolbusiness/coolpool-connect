@@ -1,8 +1,14 @@
-// SERVER-ONLY. Penny-less bank account verification via Sandbox.co.in.
+// Penny-less bank account verification via Sandbox.co.in. The verification
+// itself runs server-side inside verifyBankAccountServer (createServerFn); the
+// client only imports that RPC stub, so this file is intentionally NOT named
+// `*.server.ts` (which the import-protection plugin forbids client code from
+// importing). Server-only auth/config lives in sandbox-core.server and is used
+// only inside the handler, so it is stripped from the client bundle.
+//
 // "Penny-less" = the account holder's name is fetched from the bank over the
 // NPCI/IMPS rails WITHOUT depositing a rupee, so we can confirm a host's payout
-// account belongs to them before we ever send money. Shared auth/config lives
-// in sandbox-core.server; credentials never reach the browser.
+// account belongs to them before we ever send money. Credentials never reach
+// the browser.
 //
 // Docs: GET /bank/{ifsc}/accounts/{account_number}/penniless-verify?name=&mobile=
 //       -> data: { account_exists: boolean, name_at_bank: string, message? }
