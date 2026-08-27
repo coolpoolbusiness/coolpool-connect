@@ -10,6 +10,8 @@ import {
   Clock3,
   XCircle,
   MapPin,
+  ShieldCheck,
+  ShieldAlert,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -20,6 +22,7 @@ import {
   listHostTrips,
   listHostBookings,
 } from "@/data/appwrite-repository";
+import { verifyBankAccountServer } from "@/integrations/kyc/bank.server";
 import {
   hostNetEarnings,
   platformFee,
@@ -224,6 +227,17 @@ export function PayoutsPanel() {
   const userId = user?.$id;
   const [bankForm] = Form.useForm<BankAccountFormValues>();
   const [bankModalOpen, setBankModalOpen] = useState(false);
+  const [bankVerify, setBankVerify] = useState<
+    | { status: "idle" }
+    | { status: "checking" }
+    | {
+        status: "done";
+        exists: boolean;
+        nameAtBank: string | null;
+        nameMatch: boolean | null;
+      }
+    | { status: "error"; message: string }
+  >({ status: "idle" });
   const [withdrawTrip, setWithdrawTrip] = useState<{
     trip: Trip;
     net: number;
@@ -284,6 +298,58 @@ export function PayoutsPanel() {
     },
     onError: (error: any) => message.error(error.message || "Failed to save bank details."),
   });
+
+  // Penny-less verification: confirm the account exists and the holder name
+  // matches, before we ever pay into it. Best-effort — if the provider isn't
+  // configured yet, we simply skip (the host can still save and withdraw).
+  const runBankVerify = async () => {
+    const holder = (bankForm.getFieldValue("accountHolderName") || "").trim();
+    const account = (bankForm.getFieldValue("accountNumber") || "").trim();
+    const ifsc = (bankForm.getFieldValue("ifscCode") || "").trim().toUpperCase();
+    if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifsc)) {
+      message.error("Enter a valid IFSC code first (e.g. HDFC0001234).");
+      return;
+    }
+    if (!account) {
+      message.error("Enter the account number first.");
+      return;
+    }
+    setBankVerify({ status: "checking" });
+    try {
+      const res = await verifyBankAccountServer({
+        data: { ifsc, accountNumber: account, name: holder || undefined },
+      });
+      if (!res.configured) {
+        setBankVerify({ status: "idle" });
+        message.info("Instant bank verification isn't switched on yet — you can still save.");
+        return;
+      }
+      if (!res.accountExists) {
+        setBankVerify({
+          status: "done",
+          exists: false,
+          nameAtBank: res.nameAtBank,
+          nameMatch: res.nameMatch,
+        });
+        return;
+      }
+      // Account exists — offer to adopt the bank's official spelling of the name.
+      if (res.nameAtBank && res.nameMatch !== false) {
+        bankForm.setFieldsValue({ accountHolderName: res.nameAtBank });
+      }
+      setBankVerify({
+        status: "done",
+        exists: true,
+        nameAtBank: res.nameAtBank,
+        nameMatch: res.nameMatch,
+      });
+    } catch (error: any) {
+      setBankVerify({
+        status: "error",
+        message: error?.message || "Couldn't verify the account. Try again.",
+      });
+    }
+  };
 
   const requestPayoutMutation = useMutation({
     mutationFn: ({ trip, net, grossAmount }: { trip: Trip; net: number; grossAmount: number }) => {
@@ -670,6 +736,7 @@ export function PayoutsPanel() {
         title={<span className="text-xl font-bold">Bank details</span>}
         onCancel={() => {
           setBankModalOpen(false);
+          setBankVerify({ status: "idle" });
           bankForm.resetFields();
           if (bankAccount) {
             bankForm.setFieldsValue({
@@ -689,6 +756,16 @@ export function PayoutsPanel() {
           form={bankForm}
           layout="vertical"
           onFinish={(values) => saveBankMutation.mutate(values)}
+          onValuesChange={(changed) => {
+            // Any edit to the identifying fields invalidates a prior check.
+            if (
+              "accountNumber" in changed ||
+              "ifscCode" in changed ||
+              "accountHolderName" in changed
+            ) {
+              setBankVerify((v) => (v.status === "idle" ? v : { status: "idle" }));
+            }
+          }}
           className="mt-4"
         >
           {!bankAccount && (
@@ -752,6 +829,62 @@ export function PayoutsPanel() {
               style={{ textTransform: "uppercase" }}
             />
           </Form.Item>
+
+          {/* Instant penny-less bank verification — confirms the account is real
+              and belongs to the host, with no test deposit. */}
+          <div className="mb-4">
+            <Button
+              onClick={runBankVerify}
+              loading={bankVerify.status === "checking"}
+              icon={<ShieldCheck size={18} />}
+              size="large"
+              className="rounded-2xl h-12 w-full font-semibold border-primary text-primary"
+            >
+              Verify account
+            </Button>
+            {bankVerify.status === "done" && bankVerify.exists && bankVerify.nameMatch !== false && (
+              <div className="mt-2 flex items-start gap-2 rounded-2xl bg-emerald-50 px-4 py-3 text-emerald-800">
+                <ShieldCheck size={18} className="mt-0.5 shrink-0" />
+                <div className="text-sm">
+                  <div className="font-semibold">Account verified</div>
+                  {bankVerify.nameAtBank && (
+                    <div>
+                      Bank records show{" "}
+                      <span className="font-semibold">{bankVerify.nameAtBank}</span>.
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            {bankVerify.status === "done" && bankVerify.exists && bankVerify.nameMatch === false && (
+              <div className="mt-2 flex items-start gap-2 rounded-2xl bg-amber-50 px-4 py-3 text-amber-800">
+                <ShieldAlert size={18} className="mt-0.5 shrink-0" />
+                <div className="text-sm">
+                  <div className="font-semibold">Account found — name doesn't match</div>
+                  {bankVerify.nameAtBank && (
+                    <div>
+                      The bank has this account under{" "}
+                      <span className="font-semibold">{bankVerify.nameAtBank}</span>. Update the
+                      holder name to match, or re-check the number.
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            {bankVerify.status === "done" && !bankVerify.exists && (
+              <div className="mt-2 flex items-start gap-2 rounded-2xl bg-rose-50 px-4 py-3 text-rose-700">
+                <XCircle size={18} className="mt-0.5 shrink-0" />
+                <div className="text-sm">
+                  <div className="font-semibold">Account not found</div>
+                  <div>Check the account number and IFSC, then try again.</div>
+                </div>
+              </div>
+            )}
+            {bankVerify.status === "error" && (
+              <div className="mt-2 text-sm text-rose-600">{bankVerify.message}</div>
+            )}
+          </div>
+
           <Form.Item
             label={
               <span className="text-base font-semibold">
