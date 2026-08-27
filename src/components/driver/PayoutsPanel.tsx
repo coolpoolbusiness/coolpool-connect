@@ -23,6 +23,7 @@ import {
   listHostBookings,
 } from "@/data/appwrite-repository";
 import { verifyBankAccountServer } from "@/integrations/kyc/bank-verify";
+import { account } from "@/integrations/appwrite/client";
 import {
   hostNetEarnings,
   platformFee,
@@ -336,6 +337,17 @@ export function PayoutsPanel() {
       // Account exists — offer to adopt the bank's official spelling of the name.
       if (res.nameAtBank && res.nameMatch !== false) {
         bankForm.setFieldsValue({ accountHolderName: res.nameAtBank });
+      }
+      // Record the result on the user's profile so it shows on the admin KYC board.
+      try {
+        await account.updatePrefs({
+          ...(user?.prefs || {}),
+          bankVerified: true,
+          bankName: res.nameAtBank || holder || null,
+          bankVerifiedAt: new Date().toISOString(),
+        });
+      } catch {
+        /* best-effort — verification still succeeded */
       }
       setBankVerify({
         status: "done",

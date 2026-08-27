@@ -4,6 +4,7 @@ import {
   adminCreateUser,
   adminGetPrivateFile,
   adminGetUserCodes,
+  adminListKyc,
   adminListMemberVerifications,
   adminListNoShowReports,
   adminListPayoutRequests,
@@ -121,6 +122,27 @@ export async function adminGetPrivateFileUrl(fileId: string): Promise<string> {
 export async function listMemberVerificationsAsAdmin(): Promise<any[]> {
   const { jwt } = await account.createJWT();
   return adminListMemberVerifications({ data: { jwt } });
+}
+
+export interface KycRow {
+  userId: string;
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+  isDriver: boolean;
+  aadhaarVerified: boolean;
+  aadhaarName: string | null;
+  dlVerified: boolean;
+  dlName: string | null;
+  panVerified: boolean;
+  panName: string | null;
+  bankVerified: boolean;
+  bankName: string | null;
+}
+
+export async function listKycAsAdmin(): Promise<KycRow[]> {
+  const { jwt } = await account.createJWT();
+  return adminListKyc({ data: { jwt } }) as Promise<KycRow[]>;
 }
 
 export async function setMemberVerificationAsAdmin(

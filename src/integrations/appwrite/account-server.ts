@@ -661,6 +661,64 @@ export const adminGetUserCodes = createServerFn({ method: "POST" })
     },
   );
 
+/** Admin-only: read-only board of every user's automatic KYC status (Aadhaar,
+ *  licence, PAN, bank) — sourced from each user's prefs. No approval step. */
+export const adminListKyc = createServerFn({ method: "POST" })
+  .inputValidator((input: { jwt: string }) => ({ jwt: String(input?.jwt ?? "").trim() }))
+  .handler(
+    async ({
+      data,
+    }): Promise<
+      Array<{
+        userId: string;
+        name: string | null;
+        email: string | null;
+        phone: string | null;
+        isDriver: boolean;
+        aadhaarVerified: boolean;
+        aadhaarName: string | null;
+        dlVerified: boolean;
+        dlName: string | null;
+        panVerified: boolean;
+        panName: string | null;
+        bankVerified: boolean;
+        bankName: string | null;
+      }>
+    > => {
+      await assertAdmin(data.jwt);
+      const users = adminUsers();
+      const out: Array<any> = [];
+      const page = 100;
+      let offset = 0;
+      // Bounded scan (up to 2000 users) so the board never runs away.
+      for (let guard = 0; guard < 20; guard++) {
+        const res = await users.list([Query.limit(page), Query.offset(offset)]);
+        for (const u of res.users) {
+          const p = (u.prefs ?? {}) as Record<string, any>;
+          const roles = Array.isArray(p.roles) ? (p.roles as string[]) : [];
+          out.push({
+            userId: u.$id,
+            name: u.name || null,
+            email: u.email || null,
+            phone: u.phone || null,
+            isDriver: roles.includes("driver"),
+            aadhaarVerified: p.aadhaarVerified === true,
+            aadhaarName: typeof p.aadhaarName === "string" ? p.aadhaarName : null,
+            dlVerified: p.dlVerified === true,
+            dlName: typeof p.dlName === "string" ? p.dlName : null,
+            panVerified: p.panVerified === true,
+            panName: typeof p.panName === "string" ? p.panName : null,
+            bankVerified: p.bankVerified === true,
+            bankName: typeof p.bankName === "string" ? p.bankName : null,
+          });
+        }
+        offset += page;
+        if (res.users.length < page || offset >= res.total) break;
+      }
+      return out;
+    },
+  );
+
 /** Admin-only: update a driver/host profile's verification status using the API key. */
 export const adminUpdateDriverVerification = createServerFn({ method: "POST" })
   .inputValidator(

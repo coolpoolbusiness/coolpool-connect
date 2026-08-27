@@ -26,6 +26,7 @@ import {
   Wallet,
   UserX,
   ShieldCheck,
+  IdCard,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { listActiveTrips } from "@/data/appwrite-repository";
@@ -38,6 +39,7 @@ import { TripsPanel } from "@/components/admin/TripsPanel";
 import { BookingsPanel } from "@/components/admin/BookingsPanel";
 import { PayoutsPanel } from "@/components/admin/PayoutsPanel";
 import { VerificationsPanel } from "@/components/admin/VerificationsPanel";
+import { KycPanel } from "@/components/admin/KycPanel";
 import { UserProfileModal } from "@/components/UserProfileModal";
 import { getUserDisplayName } from "@/lib/user-display";
 import logo from "@/assets/logo.png";
@@ -54,6 +56,7 @@ const MODULE_TITLES: Record<string, string> = {
   bookings: "Booking Manager",
   pricing: "Pricing Rules",
   payouts: "Payouts",
+  kyc: "Driver KYC",
   banners: "Banners Manager",
 };
 
@@ -190,6 +193,7 @@ function AdminDashboardPage() {
                   { key: "bookings",  icon: <Ticket size={20} />,          label: "Booking Manager" },
                   { key: "payouts",   icon: <Wallet size={20} />,          label: "Payouts" },
                   { key: "verifications", icon: <ShieldCheck size={20} />, label: "Verifications" },
+                  { key: "kyc",       icon: <IdCard size={20} />,          label: "Driver KYC" },
                   { key: "banners",   icon: <ImageIcon size={20} />,       label: "Banners Manager" },
                   { key: "deleted",   icon: <UserX size={20} />,           label: "Deleted Accounts" },
                 ]}
@@ -274,6 +278,7 @@ function AdminDashboardPage() {
             {activeModule === "bookings"  && <BookingsPanel />}
             {activeModule === "payouts"   && <PayoutsPanel />}
             {activeModule === "verifications" && <VerificationsPanel />}
+            {activeModule === "kyc"           && <KycPanel />}
             {activeModule === "banners"   && <BannersManager />}
             {activeModule === "deleted"   && <DeletedAccountsPanel />}
           </Content>
