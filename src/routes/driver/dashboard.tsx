@@ -153,6 +153,10 @@ import { TripWizard } from "@/components/trip-wizard/TripWizard";
 import type { WizardResult } from "@/components/trip-wizard/types";
 import { NotificationPermissionPrompt } from "@/components/NotificationPermissionPrompt";
 import { RidePrefChips } from "@/components/RidePrefChips";
+import { SelfieVerificationCard } from "@/components/SelfieVerificationCard";
+import { AadhaarVerificationCard } from "@/components/AadhaarVerificationCard";
+import { PanVerificationCard } from "@/components/PanVerificationCard";
+import { DrivingLicenceVerificationCard } from "@/components/DrivingLicenceVerificationCard";
 import { showAppNotification } from "@/lib/notifications";
 
 import logo from "@/assets/logo.png";
@@ -5076,18 +5080,6 @@ function DriverDashboardPage() {
                       onFinish={async (v) => {
                         if (!user) return;
 
-                        if (!v.idDocType) {
-                          message.error("Select which ID document you're uploading.");
-                          return;
-                        }
-                        if (
-                          !idFrontFileList[0]?.originFileObj ||
-                          !idBackFileList[0]?.originFileObj
-                        ) {
-                          message.error("Upload both the front and back of your ID document.");
-                          return;
-                        }
-
                         setOnboardingSubmitting(true);
                         try {
                           const phoneDigits = String(v.phone || "").replace(/[^\d]/g, "");
@@ -5101,52 +5093,9 @@ function DriverDashboardPage() {
                               ? user.email
                               : `u${phoneDigits}@phone.coolpool.in`);
 
-                          // The ID document is the actual proof of identity, so
-                          // a failed upload here aborts onboarding instead of
-                          // silently continuing.
-                          const idDocPerms = [
-                            Permission.read(Role.user(user.$id)),
-                            Permission.delete(Role.user(user.$id)),
-                          ];
-                          let idFrontDocId: string;
-                          let idBackDocId: string;
-                          try {
-                            const upFront = await storage.createFile(
-                              appwriteConfig.driverDocsBucketId,
-                              ID.unique(),
-                              await compressImage(idFrontFileList[0].originFileObj as File),
-                              idDocPerms,
-                            );
-                            idFrontDocId = upFront.$id;
-                            const upBack = await storage.createFile(
-                              appwriteConfig.driverDocsBucketId,
-                              ID.unique(),
-                              await compressImage(idBackFileList[0].originFileObj as File),
-                              idDocPerms,
-                            );
-                            idBackDocId = upBack.$id;
-                          } catch {
-                            message.error("ID document upload failed. Please try again.");
-                            setOnboardingSubmitting(false);
-                            return;
-                          }
-
-                          // The live selfie is best-effort.
-                          let selfieDocId: string | undefined;
-                          if (selfieFileList[0]?.originFileObj) {
-                            try {
-                              const up = await storage.createFile(
-                                appwriteConfig.driverDocsBucketId,
-                                ID.unique(),
-                                await compressImage(selfieFileList[0].originFileObj as File),
-                                idDocPerms,
-                              );
-                              selfieDocId = up.$id;
-                            } catch {
-                              message.warning("Selfie upload failed — you can add it later.");
-                            }
-                          }
-
+                          // Identity is verified through the cards below (Aadhaar
+                          // OTP / PAN / DigiLocker + selfie), which each save their
+                          // own result — so onboarding just records the profile.
                           await upsertDriverProfile({
                             userId: user.$id,
                             fullName: user.name || String(v.phone || ""),
@@ -5154,15 +5103,11 @@ function DriverDashboardPage() {
                             phone: String(v.phone),
                             licenseNumber: String(v.licenseNumber),
                             city: String(v.city),
-                            idDocType: v.idDocType,
-                            idFrontDoc: idFrontDocId,
-                            idBackDoc: idBackDocId,
-                            selfieDoc: selfieDocId,
                           });
 
                           await assignRole(user.$id, "driver");
                           message.success(
-                            "Identity verified! Now add your vehicle to start hosting.",
+                            "Profile saved! Now add your vehicle to start hosting.",
                           );
                           await refreshRoles();
                           setActiveModule("dashboard");
@@ -5242,91 +5187,18 @@ function DriverDashboardPage() {
                           Identity Verification
                         </Text>
                       </Divider>
-                      <div className="grid grid-cols-1 gap-x-6">
-                        <Form.Item
-                          name="idDocType"
-                          label={
-                            <span className="text-lg font-semibold">
-                              Which document are you uploading?
-                            </span>
-                          }
-                          rules={[{ required: true, message: "Select an ID document" }]}
-                        >
-                          <Segmented
-                            size="large"
-                            block
-                            options={[
-                              { label: "Aadhar Card", value: "aadhar" },
-                              { label: "Driving Licence", value: "license" },
-                            ]}
-                          />
-                        </Form.Item>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4 mb-8">
-                        <div>
-                          <Text className="text-lg font-semibold mb-2 block">
-                            Front Side
-                          </Text>
-                          <Upload
-                            beforeUpload={() => false}
-                            maxCount={1}
-                            accept="image/*"
-                            fileList={idFrontFileList}
-                            onChange={({ fileList }) => setIdFrontFileList(fileList)}
-                          >
-                            <Button
-                              block
-                              size="large"
-                              className="rounded-2xl border-dashed h-32 flex flex-col items-center justify-center gap-2"
-                            >
-                              <Plus size={24} />
-                              <span className="text-base font-medium">Upload Front</span>
-                            </Button>
-                          </Upload>
-                        </div>
-                        <div>
-                          <Text className="text-lg font-semibold mb-2 block">
-                            Back Side
-                          </Text>
-                          <Upload
-                            beforeUpload={() => false}
-                            maxCount={1}
-                            accept="image/*"
-                            fileList={idBackFileList}
-                            onChange={({ fileList }) => setIdBackFileList(fileList)}
-                          >
-                            <Button
-                              block
-                              size="large"
-                              className="rounded-2xl border-dashed h-32 flex flex-col items-center justify-center gap-2"
-                            >
-                              <Plus size={24} />
-                              <span className="text-base font-medium">Upload Back</span>
-                            </Button>
-                          </Upload>
-                        </div>
-                        <div className="col-span-2">
-                          <Text className="text-lg font-semibold mb-2 block">Live Selfie</Text>
-                          <Upload
-                            beforeUpload={() => false}
-                            maxCount={1}
-                            accept="image/*"
-                            capture="user"
-                            fileList={selfieFileList}
-                            onChange={({ fileList }) => setSelfieFileList(fileList)}
-                          >
-                            <Button
-                              block
-                              size="large"
-                              className="rounded-2xl border-dashed h-32 flex flex-col items-center justify-center gap-2"
-                            >
-                              <Camera size={24} />
-                              <span className="text-base font-medium">Take Selfie</span>
-                            </Button>
-                          </Upload>
-                          <Text type="secondary" className="text-sm mt-2 block">
-                            Used only to verify your identity — not shown publicly.
-                          </Text>
+                      <div className="space-y-4 mb-8">
+                        <SelfieVerificationCard />
+                        <div className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm">
+                          <p className="font-bold text-gray-900">Verify your identity</p>
+                          <p className="text-sm text-muted-foreground">
+                            Choose any <b>one</b> — you only need one. It's instant, no uploads.
+                          </p>
+                          <div className="mt-4 space-y-3">
+                            <AadhaarVerificationCard />
+                            <PanVerificationCard />
+                            <DrivingLicenceVerificationCard />
+                          </div>
                         </div>
                       </div>
 
