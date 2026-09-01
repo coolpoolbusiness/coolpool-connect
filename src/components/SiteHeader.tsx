@@ -2,15 +2,13 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import logo from "@/assets/logo.png";
 import { useState } from "react";
 import {
-  Menu,
-  X,
+  type LucideIcon,
   LogOut,
   User as UserIcon,
   LayoutDashboard,
   Shield,
   Ticket,
   Home,
-  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -27,7 +25,32 @@ import { UserProfileDialog } from "@/components/UserProfileDialog";
 import { getUserDisplayName, getUserInitial } from "@/lib/user-display";
 import { RoleSwitch } from "@/components/RoleSwitch";
 
-const navLinks = [{ to: "/" as const, label: "Home" }];
+function BottomTab({
+  to,
+  icon: Icon,
+  label,
+  active,
+  search,
+}: {
+  to: string;
+  icon: LucideIcon;
+  label: string;
+  active: boolean;
+  search?: Record<string, unknown>;
+}) {
+  return (
+    <Link
+      to={to as never}
+      search={search as never}
+      className={`flex flex-1 flex-col items-center justify-center gap-1 transition-transform active:scale-95 ${
+        active ? "text-primary" : "text-muted-foreground"
+      }`}
+    >
+      <Icon className="h-5 w-5" />
+      <span className="text-[10px] font-semibold">{label}</span>
+    </Link>
+  );
+}
 
 export function SiteHeader() {
   const { user, isDriver, isAdmin, signOut, roles } = useAuth();
@@ -38,7 +61,7 @@ export function SiteHeader() {
       return { redirect: search.redirect, google_auth: undefined as undefined };
     },
   });
-  const [open, setOpen] = useState(false);
+  const pathname = useRouterState({ select: (r) => r.location.pathname });
   const dashboardPath = isAdmin ? "/admin/dashboard" : isDriver ? "/driver/dashboard" : null;
 
   return (
@@ -151,170 +174,89 @@ export function SiteHeader() {
             )}
           </div>
 
-          <button
-            className="md:hidden h-12 w-12 rounded-full flex items-center justify-center hover:bg-primary/10 transition-colors"
-            onClick={() => setOpen((v) => !v)}
-            aria-label="Toggle menu"
-          >
-            {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </button>
-        </header>
-      </div>
-
-      {open && (
-        <div className="fixed inset-0 z-[60] md:hidden">
-          {/* Backdrop */}
-          <button
-            aria-label="Close menu"
-            onClick={() => setOpen(false)}
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200"
-          />
-
-          {/* Panel */}
-          <div className="absolute inset-x-0 top-0 bg-background rounded-b-3xl shadow-2xl border-b border-border/40 px-5 pt-5 pb-6 animate-in slide-in-from-top duration-300">
-            <div className="flex items-center justify-between mb-5">
-              <Link
-                to="/"
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-2"
-              >
-                <img src={logo} alt="Coolpool" className="h-12 w-auto object-contain" />
-              </Link>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setOpen(false)}
-                className="rounded-full"
-              >
-                <X className="h-6 w-6" />
-              </Button>
-            </div>
-
-            {user && (
-              <div className="flex items-center gap-3 rounded-2xl bg-muted/50 p-3 mb-4">
-                <div className="h-11 w-11 rounded-2xl bg-gradient-primary flex items-center justify-center text-base font-bold text-primary-foreground shrink-0">
-                  {getUserInitial(user)}
-                </div>
-                <div className="min-w-0">
-                  <p className="font-bold text-sm truncate">{getUserDisplayName(user)}</p>
-                  <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                </div>
-              </div>
-            )}
-
-            {/* Host / Passenger switch (hosts only) */}
-            {(isDriver || isAdmin) && (
-              <div className="mb-3 flex items-center justify-between rounded-2xl bg-muted/50 px-4 py-3">
-                <span className="text-sm font-semibold text-muted-foreground">Switch role</span>
-                <span onClick={() => setOpen(false)}>
-                  <RoleSwitch />
-                </span>
-              </div>
-            )}
-
-            <nav className="flex flex-col gap-1">
-              {navLinks.map((l) => (
-                <Link
-                  key={l.to}
-                  to={l.to}
-                  onClick={() => setOpen(false)}
-                  className="flex items-center gap-3 rounded-2xl px-4 py-3.5 text-base font-semibold hover:bg-muted active:scale-[0.98] transition-all"
-                >
-                  <Home className="h-5 w-5 text-muted-foreground shrink-0" />
-                  <span className="flex-1">{l.label}</span>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
-                </Link>
-              ))}
-
-              {user ? (
-                <>
-                  <Link
-                    to="/trips"
-                    onClick={() => setOpen(false)}
-                    className="flex items-center gap-3 rounded-2xl px-4 py-3.5 text-base font-semibold hover:bg-muted active:scale-[0.98] transition-all"
-                  >
-                    <Ticket className="h-5 w-5 text-muted-foreground shrink-0" />
-                    <span className="flex-1">My trips</span>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
-                  </Link>
-                  {dashboardPath && (
-                    <Link
-                      to={dashboardPath}
-                      onClick={() => setOpen(false)}
-                      className="flex items-center gap-3 rounded-2xl px-4 py-3.5 text-base font-semibold hover:bg-muted active:scale-[0.98] transition-all"
-                    >
-                      {isAdmin ? (
-                        <Shield className="h-5 w-5 text-muted-foreground shrink-0" />
-                      ) : (
-                        <LayoutDashboard className="h-5 w-5 text-muted-foreground shrink-0" />
-                      )}
-                      <span className="flex-1">
-                        {isAdmin ? "Admin dashboard" : "Host dashboard"}
-                      </span>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
-                    </Link>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setOpen(false);
-                      setProfileOpen(true);
-                    }}
-                    className="flex items-center gap-3 rounded-2xl px-4 py-3.5 text-base font-semibold hover:bg-muted active:scale-[0.98] transition-all text-left"
-                  >
-                    <UserIcon className="h-5 w-5 text-muted-foreground shrink-0" />
-                    <span className="flex-1">My profile</span>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
-                  </button>
-                </>
-              ) : (
-                <>
-                  <Link
-                    to="/members"
-                    search={memberSearch}
-                    onClick={() => setOpen(false)}
-                    className="flex items-center gap-3 rounded-2xl px-4 py-3.5 text-base font-semibold hover:bg-muted active:scale-[0.98] transition-all"
-                  >
-                    <Ticket className="h-5 w-5 text-muted-foreground shrink-0" />
-                    <span className="flex-1">My trips</span>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
-                  </Link>
-                  <Link
-                    to="/auth"
-                    onClick={() => setOpen(false)}
-                    className="flex items-center gap-3 rounded-2xl px-4 py-3.5 text-base font-semibold hover:bg-muted active:scale-[0.98] transition-all"
-                  >
-                    <LayoutDashboard className="h-5 w-5 text-muted-foreground shrink-0" />
-                    <span className="flex-1">Host dashboard</span>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
-                  </Link>
-                </>
-              )}
-            </nav>
-
-            <div className="h-px bg-border/60 my-4" />
-
+          {/* Mobile: Host/Guest toggle + account (nav lives in the bottom bar) */}
+          <div className="flex items-center gap-2 md:hidden">
+            {(isDriver || isAdmin) && <RoleSwitch />}
             {user ? (
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setOpen(false);
-                  signOut();
-                }}
-                className="w-full rounded-2xl h-12 text-destructive border-destructive/30 hover:bg-destructive/5 hover:text-destructive"
-              >
-                <LogOut className="h-4 w-4 mr-2" /> Sign out
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    aria-label="Account"
+                    className="h-10 w-10 rounded-full bg-gradient-primary flex items-center justify-center text-sm font-bold text-white shrink-0"
+                  >
+                    {getUserInitial(user)}
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 rounded-3xl">
+                  <DropdownMenuLabel className="font-normal space-y-1">
+                    <p className="text-sm font-medium text-foreground truncate">
+                      {getUserDisplayName(user)}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="cursor-pointer" onSelect={() => setProfileOpen(true)}>
+                    <UserIcon className="h-4 w-4 mr-2" /> My profile
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={signOut} className="cursor-pointer text-destructive">
+                    <LogOut className="h-4 w-4 mr-2" /> Sign out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : (
-              <Button asChild variant="hero" className="w-full rounded-2xl h-12 text-base">
-                <Link to="/auth" onClick={() => setOpen(false)}>
-                  Login / Register
-                </Link>
+              <Button asChild variant="ghost" className="rounded-3xl h-10 px-4">
+                <Link to="/auth">Login</Link>
               </Button>
             )}
           </div>
+        </header>
+      </div>
+
+      {/* Mobile bottom navigation */}
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-[60] border-t border-border/40 bg-background/95 backdrop-blur-xl pb-safe">
+        <div className="flex h-16 items-stretch justify-around">
+          <BottomTab to="/" icon={Home} label="Home" active={pathname === "/"} />
+          {user ? (
+            <BottomTab
+              to="/trips"
+              icon={Ticket}
+              label="My trips"
+              active={pathname.startsWith("/trips")}
+            />
+          ) : (
+            <BottomTab
+              to="/members"
+              search={memberSearch}
+              icon={Ticket}
+              label="My trips"
+              active={pathname.startsWith("/members")}
+            />
+          )}
+          {dashboardPath ? (
+            <BottomTab
+              to={dashboardPath}
+              icon={isAdmin ? Shield : LayoutDashboard}
+              label={isAdmin ? "Admin" : "Host"}
+              active={pathname.startsWith("/driver") || pathname.startsWith("/admin")}
+            />
+          ) : (
+            <BottomTab to="/auth" icon={LayoutDashboard} label="Host" active={pathname.startsWith("/auth")} />
+          )}
+          {user ? (
+            <button
+              type="button"
+              onClick={() => setProfileOpen(true)}
+              className="flex flex-1 flex-col items-center justify-center gap-1 text-muted-foreground active:scale-95 transition-transform"
+            >
+              <UserIcon className="h-5 w-5" />
+              <span className="text-[10px] font-semibold">Profile</span>
+            </button>
+          ) : (
+            <BottomTab to="/auth" icon={UserIcon} label="Login" active={false} />
+          )}
         </div>
-      )}
+      </nav>
 
       <UserProfileDialog
         open={profileOpen}

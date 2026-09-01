@@ -337,6 +337,13 @@ a.inline-flex.bg-gradient-primary:focus-visible {
   margin: 0 !important;
 }
 
+/* Leave room for the mobile bottom navigation bar (SiteHeader). */
+@media (max-width: 767px) {
+  body {
+    padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
 .trip-search-form-item .ant-form-item-explain-error {
   font-size: 0.75rem !important;
   line-height: 1.2 !important;
