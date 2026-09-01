@@ -57,13 +57,13 @@ export function RoleSwitch({ className }: { className?: string }) {
             aria-selected={active}
             onClick={() => go(mode)}
             className={cn(
-              "rounded-full px-4 py-1.5 text-sm font-semibold transition-all duration-200",
+              "rounded-full px-3.5 py-1.5 text-sm font-semibold transition-all duration-200",
               active
                 ? "bg-background text-primary shadow-sm"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
-            {mode === "host" ? "Host" : "Passenger"}
+            {mode === "host" ? "Host" : "Guest"}
           </button>
         );
       })}

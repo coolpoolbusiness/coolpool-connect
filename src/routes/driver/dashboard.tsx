@@ -2393,7 +2393,9 @@ function DriverDashboardPage() {
                   </button>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 sm:gap-4">
+                {/* Host / Guest toggle in the top bar */}
+                <RoleSwitch />
                 <Dropdown
                   menu={{
                     items: [
@@ -2601,8 +2603,6 @@ function DriverDashboardPage() {
                       <p className="m-0 text-sm font-medium text-gray-500">
                         Here's what's happening with your trips today.
                       </p>
-                      {/* Quick switch back to the rider experience */}
-                      <RoleSwitch className="mt-2 self-start" />
                     </div>
                     <Button
                       type="primary"
