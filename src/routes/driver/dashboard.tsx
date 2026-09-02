@@ -157,6 +157,7 @@ import { SelfieVerificationCard } from "@/components/SelfieVerificationCard";
 import { AadhaarVerificationCard } from "@/components/AadhaarVerificationCard";
 import { PanVerificationCard } from "@/components/PanVerificationCard";
 import { DrivingLicenceVerificationCard } from "@/components/DrivingLicenceVerificationCard";
+import { HostOnboardingWizard } from "@/components/HostOnboardingWizard";
 import { showAppNotification } from "@/lib/notifications";
 
 import logo from "@/assets/logo.png";
@@ -5056,164 +5057,47 @@ function DriverDashboardPage() {
 
               {/* — ONBOARDING MODULE — */}
               {activeModule === "onboarding" && (
-                <div className="-mx-5 sm:mx-auto sm:max-w-2xl space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
-                  <div className="text-center px-5 sm:px-0 pt-2">
-                    <div className="mx-auto w-20 h-20 bg-gradient-primary rounded-3xl flex items-center justify-center text-white shadow-glow mb-6">
-                      <Sparkles size={40} />
-                    </div>
-                    <Title level={2}>Host Onboarding</Title>
-                    <Text type="secondary" className="text-lg">
-                      Verify your identity to get started. You'll add your vehicle next.
-                    </Text>
-                  </div>
-
-                  <Card className="rounded-none sm:rounded-3xl border-0 sm:border sm:border-white/60 shadow-none sm:shadow-card bg-white sm:bg-white/80 backdrop-blur-md px-5 pt-6 pb-10 sm:p-8">
-                    <Form
-                      layout="vertical"
-                      initialValues={{
-                        phone:
-                          (user?.prefs as Record<string, unknown> | undefined)?.phone ??
-                          (user as { phone?: string } | null)?.phone ??
-                          "",
-                        email: hasRealEmail ? user?.email : "",
-                      }}
-                      onFinish={async (v) => {
-                        if (!user) return;
-
-                        setOnboardingSubmitting(true);
-                        try {
-                          const phoneDigits = String(v.phone || "").replace(/[^\d]/g, "");
-                          const enteredEmail = String(v.email || "").trim();
-                          // The `drivers` collection requires a non-empty email.
-                          // Phone-based accounts may have no real email, so fall
-                          // back to a deterministic phone-derived address.
-                          const profileEmail =
-                            enteredEmail ||
-                            (user.email && user.email.trim()
-                              ? user.email
-                              : `u${phoneDigits}@phone.coolpool.in`);
-
-                          // Identity is verified through the cards below (Aadhaar
-                          // OTP / PAN / DigiLocker + selfie), which each save their
-                          // own result — so onboarding just records the profile.
-                          await upsertDriverProfile({
-                            userId: user.$id,
-                            fullName: user.name || String(v.phone || ""),
-                            email: profileEmail,
-                            phone: String(v.phone),
-                            licenseNumber: String(v.licenseNumber),
-                            city: String(v.city),
-                          });
-
-                          await assignRole(user.$id, "driver");
-                          message.success(
-                            "Profile saved! Now add your vehicle to start hosting.",
-                          );
-                          await refreshRoles();
-                          setActiveModule("dashboard");
-                          setVehicleDrawerOpen(true);
-                        } catch (err) {
-                          message.error(err instanceof Error ? err.message : "Onboarding failed");
-                        } finally {
-                          setOnboardingSubmitting(false);
-                        }
-                      }}
-                    >
-                      <Divider>
-                        <Text className="text-base font-bold uppercase tracking-widest text-purple-600">
-                          Personal & License
-                        </Text>
-                      </Divider>
-                      <div className="grid grid-cols-1 gap-x-6">
-                        <Form.Item
-                          name="phone"
-                          label={<span className="text-lg font-semibold">Phone Number</span>}
-                          rules={[{ required: true }]}
-                        >
-                          <Input
-                            size="large"
-                            className="rounded-2xl h-16 text-xl"
-                            placeholder="+91 98765 43210"
-                          />
-                        </Form.Item>
-                        <Form.Item
-                          name="city"
-                          label={<span className="text-lg font-semibold">City</span>}
-                          rules={[{ required: true }]}
-                        >
-                          <Input
-                            size="large"
-                            className="rounded-2xl h-16 text-xl"
-                            placeholder="Chennai"
-                          />
-                        </Form.Item>
-                        {!hasRealEmail && (
-                          <Form.Item
-                            name="email"
-                            label={
-                              <span className="text-lg font-semibold">
-                                Email{" "}
-                                <span className="text-sm font-normal text-muted-foreground">
-                                  (optional)
-                                </span>
-                              </span>
-                            }
-                          >
-                            <Input
-                              type="email"
-                              size="large"
-                              className="rounded-2xl h-16 text-xl"
-                              placeholder="you@example.com"
-                            />
-                          </Form.Item>
-                        )}
-                        <Form.Item
-                          name="licenseNumber"
-                          label={
-                            <span className="text-lg font-semibold">Driving License Number</span>
-                          }
-                          rules={[{ required: true }]}
-                        >
-                          <Input
-                            size="large"
-                            className="rounded-2xl h-16 text-xl"
-                            placeholder="TN01 20150012345"
-                          />
-                        </Form.Item>
-                      </div>
-
-                      <Divider orientation="left" className="mt-8">
-                        <Text className="text-sm font-bold uppercase tracking-widest text-purple-600">
-                          Identity Verification
-                        </Text>
-                      </Divider>
-                      <div className="space-y-4 mb-8">
-                        <SelfieVerificationCard />
-                        <div className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm">
-                          <p className="font-bold text-gray-900">Verify your identity</p>
-                          <p className="text-sm text-muted-foreground">
-                            Choose any <b>one</b> — you only need one. It's instant, no uploads.
-                          </p>
-                          <div className="mt-4 space-y-3">
-                            <AadhaarVerificationCard />
-                            <PanVerificationCard />
-                            <DrivingLicenceVerificationCard />
-                          </div>
-                        </div>
-                      </div>
-
-                      <Button
-                        type="primary"
-                        htmlType="submit"
-                        block
-                        size="large"
-                        loading={onboardingSubmitting}
-                        className="bg-gradient-primary border-none rounded-2xl h-16 font-bold text-xl shadow-glow mt-4"
-                      >
-                        Complete Verification
-                      </Button>
-                    </Form>
-                  </Card>
+                <div className="px-2 py-4 sm:py-8 animate-in fade-in duration-500">
+                  <HostOnboardingWizard
+                    initialPhone={
+                      (((user?.prefs as Record<string, unknown> | undefined)?.phone as
+                        | string
+                        | undefined) ??
+                        (user as { phone?: string } | null)?.phone ??
+                        "")
+                    }
+                    submitting={onboardingSubmitting}
+                    onSubmit={async ({ phone, city, licenseNumber }) => {
+                      if (!user) return;
+                      setOnboardingSubmitting(true);
+                      try {
+                        const phoneDigits = phone.replace(/[^\d]/g, "");
+                        // The `drivers` collection requires a non-empty email; phone
+                        // accounts fall back to a deterministic phone-derived address.
+                        const profileEmail =
+                          user.email && user.email.trim()
+                            ? user.email
+                            : `u${phoneDigits}@phone.coolpool.in`;
+                        await upsertDriverProfile({
+                          userId: user.$id,
+                          fullName: user.name || phone,
+                          email: profileEmail,
+                          phone,
+                          licenseNumber,
+                          city,
+                        });
+                        await assignRole(user.$id, "driver");
+                        message.success("Profile saved! Now add your vehicle to start hosting.");
+                        await refreshRoles();
+                        setActiveModule("dashboard");
+                        setVehicleDrawerOpen(true);
+                      } catch (err) {
+                        message.error(err instanceof Error ? err.message : "Onboarding failed");
+                      } finally {
+                        setOnboardingSubmitting(false);
+                      }
+                    }}
+                  />
                 </div>
               )}
             </Content>
