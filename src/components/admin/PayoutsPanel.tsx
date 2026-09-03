@@ -13,18 +13,25 @@ import {
   InputNumber,
   message,
   Drawer,
+  Popconfirm,
 } from "antd";
-import { Plus, WalletCards } from "lucide-react";
+import { Plus, WalletCards, Zap } from "lucide-react";
 import { listDriverProfiles, listAllTrips, listAllBookings } from "@/data/appwrite-repository";
 import { hostNetEarnings, estimateFeeFromNet, PLATFORM_FEE_PERCENT } from "@/lib/pricing";
 import type { PayoutRequest, PayoutStatus } from "@/lib/domain";
 import {
   createPayoutEntryAsAdmin,
   listPayoutRequestsAsAdmin,
+  payoutViaRouteAsAdmin,
   updatePayoutRequestAsAdmin,
 } from "./adminUserApi";
 
 const { Title, Text } = Typography;
+
+// The "Pay via Route" button only appears once Route is live on the company
+// account. Set VITE_RAZORPAY_ROUTE_ENABLED="1" in prod after adding the
+// company account's Route keys — until then automatic payouts stay hidden.
+const ROUTE_ENABLED = String(import.meta.env.VITE_RAZORPAY_ROUTE_ENABLED ?? "") === "1";
 
 const STATUS_COLORS: Record<PayoutStatus, string> = {
   pending: "warning",
@@ -298,6 +305,18 @@ export function PayoutsPanel() {
     onError: (error: any) => message.error(error.message || "Failed to record the payment."),
   });
 
+  // Automatic payout via Razorpay Route (onboards the host on first use, then
+  // transfers). On success the row flips to Paid with the transfer id.
+  const routeMutation = useMutation({
+    mutationFn: (vars: { requestId: string }) => payoutViaRouteAsAdmin(vars),
+    onSuccess: (res) => {
+      void queryClient.invalidateQueries({ queryKey: ["admin-payout-requests"] });
+      message.success(`Paid via Route — ${res.paymentReference ?? "transfer created"}.`);
+    },
+    onError: (error: any) =>
+      message.error(error.message || "Route payout failed. Nothing was charged."),
+  });
+
   // One unified ledger — the status filter is the archive.
   const filteredRequests =
     statusFilter === "all" ? requests : requests.filter((r) => r.status === statusFilter);
@@ -436,6 +455,35 @@ export function PayoutsPanel() {
             {formatMoney(record.paidAmount ?? 0)} of {formatMoney(payableOf(record))} sent
           </Text>
         )}
+        {ROUTE_ENABLED &&
+          (record.status === "pending" ||
+            record.status === "processing" ||
+            record.status === "part_paid") &&
+          !!record.accountNumber && (
+            <Popconfirm
+              title="Pay via Razorpay Route?"
+              description={`Transfer ${formatMoney(
+                payableOf(record) - transferredOf(record),
+              )} to ${record.accountHolderName || "the host"}'s bank automatically.`}
+              okText="Pay now"
+              cancelText="Cancel"
+              okButtonProps={{ loading: routeMutation.isPending }}
+              onConfirm={() => routeMutation.mutate({ requestId: record.id })}
+            >
+              <Button
+                size="small"
+                type="primary"
+                icon={<Zap size={13} />}
+                loading={
+                  routeMutation.isPending && routeMutation.variables?.requestId === record.id
+                }
+                onClick={(e) => e.stopPropagation()}
+                className="!m-0 mt-1 rounded-full bg-gradient-primary border-none text-xs font-semibold"
+              >
+                Pay via Route
+              </Button>
+            </Popconfirm>
+          )}
       </div>
     );
   };

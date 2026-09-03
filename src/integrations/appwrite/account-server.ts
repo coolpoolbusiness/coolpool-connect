@@ -370,6 +370,92 @@ export const adminUpdatePayoutRequestStatus = createServerFn({ method: "POST" })
   });
 
 /**
+ * Admin pays a host automatically via Razorpay Route. Onboards the host as a
+ * Route linked account on first use (cached in the host's prefs), then transfers
+ * the payable amount to it. Updates the ledger row to Paid with the transfer id
+ * as the reference — the same shape a manual bank transfer would produce.
+ *
+ * Requires the company account's Route keys (RAZORPAY_ROUTE_KEY_ID/SECRET).
+ * `pan` is optional; supply it if Razorpay needs the host's PAN to activate the
+ * linked account (we only cache a masked PAN from KYC).
+ */
+export const adminPayoutViaRoute = createServerFn({ method: "POST" })
+  .inputValidator((input: { jwt: string; requestId: string; pan?: string | null }) => ({
+    jwt: String(input?.jwt ?? "").trim(),
+    requestId: String(input?.requestId ?? "").trim(),
+    pan: input?.pan == null ? null : String(input.pan).trim().toUpperCase(),
+  }))
+  .handler(async ({ data }): Promise<PayoutRequest> => {
+    await assertAdmin(data.jwt);
+    if (!data.requestId) throw new Error("Missing payout request.");
+
+    const { db, payoutsCol } = payoutEnv();
+    const databases = new Databases(adminClient());
+    const req = toPayoutRequest(await databases.getDocument(db, payoutsCol, data.requestId));
+
+    if (req.status === "paid") throw new Error("This payout is already marked Paid.");
+    if (req.status === "rejected") throw new Error("This payout was rejected.");
+    if (!req.accountNumber || !req.ifscCode) {
+      throw new Error("This payout has no bank account on file.");
+    }
+    const payable = req.amount - (req.deduction || 0) - (req.paidAmount || 0);
+    if (payable <= 0) throw new Error("Nothing left to pay on this request.");
+
+    // Resolve the host's Route linked account (onboard once, then cache).
+    const users = adminUsers();
+    const hostUser = await users.get(req.driverUserId);
+    const prefs = (hostUser.prefs ?? {}) as Record<string, any>;
+    let accountId = String(prefs.razorpayRouteAccountId || "");
+
+    const { onboardHostForRoute, createRouteTransfer } = await import(
+      "@/integrations/razorpay/route-payout"
+    );
+
+    if (!accountId) {
+      const phone = String(prefs.phone || (hostUser as any).phone || "").replace(/\D/g, "");
+      const email =
+        (hostUser.email && hostUser.email.trim()) ||
+        (phone ? `u${phone}@phone.coolpool.in` : "");
+      if (!email) throw new Error("Host has no email/phone to onboard for Route.");
+      accountId = await onboardHostForRoute(
+        {
+          name: req.accountHolderName || hostUser.name || "Coolpool Host",
+          email,
+          phone,
+          pan: data.pan || String(prefs.panNumber || "") || null,
+        },
+        {
+          beneficiaryName: req.accountHolderName || hostUser.name || "",
+          accountNumber: req.accountNumber,
+          ifsc: req.ifscCode,
+        },
+      );
+      await users.updatePrefs(req.driverUserId, { ...prefs, razorpayRouteAccountId: accountId });
+    }
+
+    // Move the money. Amounts in the ledger are in rupees → convert to paise.
+    const transfer = await createRouteTransfer({
+      accountId,
+      amountPaise: Math.round(payable * 100),
+      notes: {
+        payout_request: req.id,
+        trip: req.tripId || "",
+        host: req.driverUserId,
+      },
+    });
+
+    const note = `Paid ₹${payable} via Route (${transfer.id})`;
+    const doc = await databases.updateDocument(db, payoutsCol, data.requestId, {
+      status: "paid",
+      paid_amount: payable,
+      payment_reference: transfer.id,
+      processed_at: new Date().toISOString(),
+      admin_note: req.adminNote ? `${req.adminNote} | ${note}` : note,
+    });
+    return toPayoutRequest(doc);
+  });
+
+/**
  * Admin records a payment they made to a host directly (the "+ Add payment"
  * ledger row) — no host request needed. Bank details are snapshotted from the
  * host's saved account; the trip snapshot is optional.

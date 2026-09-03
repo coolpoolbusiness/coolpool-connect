@@ -8,6 +8,7 @@ import {
   adminListMemberVerifications,
   adminListNoShowReports,
   adminListPayoutRequests,
+  adminPayoutViaRoute,
   adminResetPassword,
   adminSetMemberVerification,
   adminSetNoShowStatus,
@@ -109,6 +110,19 @@ export async function createPayoutEntryAsAdmin(input: {
   return withTimeout(
     adminCreatePayoutEntry({ data: { jwt, ...input } }),
     "Recording the payment is taking too long. Please reload and try again.",
+  );
+}
+
+/** Admin pays a host automatically via Razorpay Route (linked account + transfer). */
+export async function payoutViaRouteAsAdmin(input: {
+  requestId: string;
+  pan?: string | null;
+}): Promise<PayoutRequest> {
+  const { jwt } = await account.createJWT();
+  return withTimeout(
+    adminPayoutViaRoute({ data: { jwt, ...input } }),
+    "The Route payout is taking too long. Check the payout list before retrying.",
+    30000,
   );
 }
 
