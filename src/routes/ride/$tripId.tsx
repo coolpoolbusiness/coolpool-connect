@@ -280,7 +280,7 @@ function RideInfoPage() {
     <div className="flex min-h-screen flex-col bg-[#fffafd]">
       <SiteHeader />
 
-      <main className="mx-auto w-full max-w-2xl flex-1 space-y-4 px-4 pb-32 pt-28 sm:pt-32">
+      <main className="mx-auto w-full max-w-2xl flex-1 space-y-4 px-4 pb-44 pt-28 sm:pt-32 md:pb-32">
         <div className="flex items-center justify-between">
           <button
             onClick={() =>
@@ -643,7 +643,10 @@ function RideInfoPage() {
         </section>
       </main>
 
-      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-100 bg-white/95 px-4 py-3 shadow-[0_-8px_30px_rgba(0,0,0,0.06)] backdrop-blur">
+      {/* Sticky booking CTA. On mobile it must sit ABOVE the global bottom nav
+          (h-16 + safe-area, mobile-only) so the button isn't hidden behind it;
+          on md+ the nav is hidden, so it drops flush to the bottom. */}
+      <div className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom,0px))] left-0 right-0 z-50 border-t border-gray-100 bg-white/95 px-4 py-3 shadow-[0_-8px_30px_rgba(0,0,0,0.06)] backdrop-blur md:bottom-0">
         <div className="mx-auto flex max-w-2xl items-center justify-between gap-4">
           <div className="shrink-0">
             <p className="text-xl font-black text-primary">{formatCurrency(displayPrice)}</p>
