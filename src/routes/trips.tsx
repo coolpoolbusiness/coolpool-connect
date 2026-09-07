@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { SiteHeader } from "@/components/SiteHeader";
-import { GetVerifiedChecklist } from "@/components/GetVerifiedChecklist";
+import { GetVerifiedButton } from "@/components/GetVerifiedButton";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -368,7 +368,7 @@ function TripsPage() {
           </div>
         )}
 
-        {user && <GetVerifiedChecklist className="mb-4" />}
+        {user && <GetVerifiedButton className="mb-4" />}
 
         {!user && !authLoading ? (
           <Card className="p-10 rounded-3xl text-center shadow-card border-border/60 bg-white/80">
