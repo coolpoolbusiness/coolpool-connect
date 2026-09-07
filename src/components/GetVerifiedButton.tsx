@@ -37,7 +37,7 @@ export function GetVerifiedButton({ className = "" }: { className?: string }) {
         placement="bottom"
         height="90vh"
         title="Get verified"
-        styles={{ body: { padding: "16px 16px 32px" } }}
+        styles={{ body: { padding: 0, display: "flex", flexDirection: "column", minHeight: 0 } }}
         className="[&_.ant-drawer-content]:rounded-t-3xl"
       >
         <GetVerifiedChecklist />

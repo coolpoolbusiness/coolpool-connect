@@ -142,10 +142,17 @@ export function GetVerifiedChecklist({ className = "" }: { className?: string })
   const back = () => setStep((s) => Math.max(0, s - 1));
   const next = () => setStep((s) => Math.min(STEPS.length - 1, s + 1));
 
+  // Selfie & identity are required — you can't advance until they're done. Car
+  // and payout are host-only extras (completed on the dashboard), so they don't
+  // block. The last step has no Continue.
+  const stepRequired = step === 0 || step === 1;
+  const stepDone = step === 0 ? !!selfieDone : step === 1 ? identityDone : step === 2 ? carDone : bankDone;
+  const canAdvance = !stepRequired || stepDone;
+
   return (
-    <div className={`mx-auto w-full max-w-lg ${className}`}>
+    <div className={`mx-auto flex h-full min-h-0 w-full max-w-lg flex-col px-4 ${className}`}>
       {/* Progress header */}
-      <div className="mb-4 text-center">
+      <div className="mb-4 shrink-0 pt-4 text-center">
         <div className="mx-auto mb-2.5 grid h-12 w-12 place-items-center rounded-2xl bg-gradient-primary text-white shadow-glow">
           <StepIcon size={24} />
         </div>
@@ -163,8 +170,11 @@ export function GetVerifiedChecklist({ className = "" }: { className?: string })
         <p className="mt-1.5 text-xs font-semibold text-muted-foreground">{doneCount} of 4 done</p>
       </div>
 
-      {/* Step content */}
-      <div key={step} className="min-h-0 animate-in fade-in slide-in-from-right-4 duration-300">
+      {/* Step content (scrolls; the nav below stays pinned) */}
+      <div
+        key={step}
+        className="flex-1 min-h-0 overflow-y-auto pb-2 animate-in fade-in slide-in-from-right-4 duration-300"
+      >
         {step === 0 &&
           (selfieDone ? <DoneRow title="Selfie" detail="Your photo is verified" /> : <SelfieVerificationCard />)}
 
@@ -225,25 +235,35 @@ export function GetVerifiedChecklist({ className = "" }: { className?: string })
         )}
       </div>
 
-      {/* Navigation */}
-      <div className="mt-5 flex items-center gap-3">
-        {step > 0 && (
-          <button
-            type="button"
-            onClick={back}
-            className="flex h-12 items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white px-5 font-semibold text-gray-700 transition active:scale-95"
-          >
-            <ArrowLeft size={18} /> Back
-          </button>
-        )}
-        {step < STEPS.length - 1 && (
-          <button
-            type="button"
-            onClick={next}
-            className="flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-gradient-primary font-bold text-white shadow-glow transition active:scale-[0.98]"
-          >
-            Continue <ArrowRight size={18} />
-          </button>
+      {/* Navigation — pinned to the bottom of the sheet so it's never clipped */}
+      <div className="shrink-0 border-t border-gray-100 bg-white pt-3 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))]">
+        <div className="flex items-center gap-3">
+          {step > 0 && (
+            <button
+              type="button"
+              onClick={back}
+              className="flex h-12 items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white px-5 font-semibold text-gray-700 transition active:scale-95"
+            >
+              <ArrowLeft size={18} /> Back
+            </button>
+          )}
+          {step < STEPS.length - 1 && (
+            <button
+              type="button"
+              onClick={next}
+              disabled={!canAdvance}
+              className="flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-gradient-primary font-bold text-white shadow-glow transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none disabled:active:scale-100"
+            >
+              Continue <ArrowRight size={18} />
+            </button>
+          )}
+        </div>
+        {step < STEPS.length - 1 && stepRequired && !stepDone && (
+          <p className="mt-2 text-center text-xs text-muted-foreground">
+            {step === 0
+              ? "Add your selfie to continue."
+              : "Verify your identity to continue."}
+          </p>
         )}
       </div>
     </div>
