@@ -132,18 +132,18 @@ export function HostOnboardingWizard({
   const pct = ((step + 1) / STEPS.length) * 100;
 
   return (
-    <div className="mx-auto w-full max-w-lg px-1">
-      {/* Progress header */}
-      <div className="mb-6 text-center">
-        <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-3xl bg-gradient-primary text-white shadow-glow">
-          <StepIcon size={30} />
+    <div className="mx-auto w-full max-w-lg px-1 pb-28 lg:pb-2">
+      {/* Progress header — kept compact so the Continue button stays in view. */}
+      <div className="mb-4 text-center">
+        <div className="mx-auto mb-2.5 grid h-12 w-12 place-items-center rounded-2xl bg-gradient-primary text-white shadow-glow">
+          <StepIcon size={24} />
         </div>
         <p className="text-xs font-bold uppercase tracking-widest text-primary">
           Step {step + 1} of {STEPS.length}
         </p>
-        <h2 className="mt-1 text-2xl font-bold text-gray-900">{cur.title}</h2>
+        <h2 className="mt-0.5 text-xl font-bold text-gray-900">{cur.title}</h2>
         <p className="text-sm text-muted-foreground">{cur.subtitle}</p>
-        <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+        <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted">
           <div
             className="h-full rounded-full bg-gradient-primary transition-all duration-500"
             style={{ width: `${pct}%` }}
@@ -152,7 +152,7 @@ export function HostOnboardingWizard({
       </div>
 
       {/* Step content */}
-      <div key={step} className="min-h-[220px] animate-in fade-in slide-in-from-right-4 duration-300">
+      <div key={step} className="min-h-0 animate-in fade-in slide-in-from-right-4 duration-300">
         {step === 0 && (
           <div className="space-y-5">
             <Field label="Phone number" required>
@@ -229,7 +229,7 @@ export function HostOnboardingWizard({
       </div>
 
       {/* Navigation */}
-      <div className="mt-7 flex items-center gap-3">
+      <div className="mt-5 flex items-center gap-3">
         {step > 0 && (
           <button
             type="button"

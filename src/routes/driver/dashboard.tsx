@@ -5060,11 +5060,17 @@ function DriverDashboardPage() {
                 <div className="px-2 py-4 sm:py-8 animate-in fade-in duration-500">
                   <HostOnboardingWizard
                     initialPhone={
+                      // Prefer the saved phone; phone+PIN accounts keep the number
+                      // only inside the synthetic login email (u<digits>@phone…),
+                      // so fall back to parsing that so we never re-ask for it.
                       (((user?.prefs as Record<string, unknown> | undefined)?.phone as
                         | string
-                        | undefined) ??
-                        (user as { phone?: string } | null)?.phone ??
-                        "")
+                        | undefined) ||
+                        (user as { phone?: string } | null)?.phone ||
+                        (() => {
+                          const m = /^u(\d{6,})@phone\.coolpool\.in$/i.exec(user?.email ?? "");
+                          return m ? `+91 ${m[1]}` : "";
+                        })())
                     }
                     submitting={onboardingSubmitting}
                     onSubmit={async ({ phone, city, licenseNumber }) => {
