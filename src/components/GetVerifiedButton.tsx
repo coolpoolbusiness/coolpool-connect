@@ -17,18 +17,18 @@ export function GetVerifiedButton({ className = "" }: { className?: string }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={`flex w-full items-center gap-3 rounded-3xl border border-primary/15 bg-primary/5 p-4 text-left transition hover:bg-primary/10 active:scale-[0.99] ${className}`}
+        className={`flex w-full items-center gap-4 rounded-3xl border border-emerald-200 bg-emerald-50 p-5 text-left shadow-sm transition hover:bg-emerald-100/70 active:scale-[0.99] ${className}`}
       >
-        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-gradient-primary text-white shadow-glow">
-          <ShieldCheck size={20} />
+        <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-emerald-500 text-white shadow-sm">
+          <ShieldCheck size={22} />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="font-bold text-gray-900">Get verified</p>
-          <p className="truncate text-sm text-muted-foreground">
+          <p className="text-base font-bold text-emerald-900">Get verified</p>
+          <p className="truncate text-sm text-emerald-700/80">
             Want to host? A few quick steps unlock it.
           </p>
         </div>
-        <ArrowRight size={20} className="shrink-0 text-primary" />
+        <ArrowRight size={20} className="shrink-0 text-emerald-600" />
       </button>
 
       <Drawer

@@ -368,7 +368,7 @@ function TripsPage() {
           </div>
         )}
 
-        {user && <GetVerifiedButton className="mb-4" />}
+        {user && <GetVerifiedButton className="mt-2 mb-6" />}
 
         {!user && !authLoading ? (
           <Card className="p-10 rounded-3xl text-center shadow-card border-border/60 bg-white/80">
