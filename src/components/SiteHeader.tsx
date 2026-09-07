@@ -1,6 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import logo from "@/assets/logo.png";
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   type LucideIcon,
@@ -24,7 +23,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { memberPortalLinkSearch } from "@/lib/travelerResumeRedirect";
-import { UserProfileDialog } from "@/components/UserProfileDialog";
 import { getUserDisplayName, getUserInitial } from "@/lib/user-display";
 import { RoleSwitch } from "@/components/RoleSwitch";
 
@@ -65,8 +63,7 @@ function BottomTab({
 }
 
 export function SiteHeader() {
-  const { user, isDriver, isAdmin, signOut, roles } = useAuth();
-  const [profileOpen, setProfileOpen] = useState(false);
+  const { user, isDriver, isAdmin, signOut } = useAuth();
   const memberSearch = useRouterState({
     select: (r) => {
       const search = memberPortalLinkSearch(r.location.href);
@@ -159,11 +156,10 @@ export function SiteHeader() {
                       <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      className="cursor-pointer"
-                      onSelect={() => setProfileOpen(true)}
-                    >
-                      <UserIcon className="h-4 w-4 mr-2" /> My profile
+                    <DropdownMenuItem asChild>
+                      <Link to="/profile" className="cursor-pointer">
+                        <UserIcon className="h-4 w-4 mr-2" /> My profile
+                      </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link to="/trips" className="cursor-pointer">
@@ -219,8 +215,10 @@ export function SiteHeader() {
                     <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem className="cursor-pointer" onSelect={() => setProfileOpen(true)}>
-                    <UserIcon className="h-4 w-4 mr-2" /> My profile
+                  <DropdownMenuItem asChild>
+                    <Link to="/profile" className="cursor-pointer">
+                      <UserIcon className="h-4 w-4 mr-2" /> My profile
+                    </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={signOut} className="cursor-pointer text-destructive">
@@ -275,26 +273,17 @@ export function SiteHeader() {
             />
           )}
           {user ? (
-            <button
-              type="button"
-              onClick={() => setProfileOpen(true)}
-              className="flex flex-1 flex-col items-center justify-center gap-1 text-muted-foreground active:scale-95 transition-transform"
-            >
-              <UserIcon className="h-5 w-5" />
-              <span className="text-[10px] font-semibold">Profile</span>
-            </button>
+            <BottomTab
+              to="/profile"
+              icon={UserIcon}
+              label="Profile"
+              active={pathname.startsWith("/profile")}
+            />
           ) : (
             <BottomTab to="/auth" icon={UserIcon} label="Login" active={false} />
           )}
         </div>
       </nav>
-
-      <UserProfileDialog
-        open={profileOpen}
-        onOpenChange={setProfileOpen}
-        user={user}
-        roles={roles}
-      />
     </>
   );
 }
