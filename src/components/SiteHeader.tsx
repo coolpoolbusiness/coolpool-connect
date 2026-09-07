@@ -67,14 +67,18 @@ export function SiteHeader() {
   return (
     <>
       <div className="fixed top-0 left-0 right-0 z-50 px-4 pt-4 pointer-events-none">
-        <header className="container mx-auto max-w-7xl h-20 rounded-full border border-white/20 bg-background/60 backdrop-blur-2xl shadow-glow-sm pointer-events-auto flex items-center justify-between px-6 sm:px-8 transition-all duration-500 hover:shadow-glow-md">
+        <header className="container mx-auto max-w-7xl h-20 rounded-full border border-white/20 bg-background/60 backdrop-blur-2xl shadow-glow-sm pointer-events-auto flex items-center justify-between gap-2 px-4 sm:px-8 transition-all duration-500 hover:shadow-glow-md">
           <Link
             to="/"
             className="flex items-center gap-3 group shrink-0 transition-transform duration-300 hover:scale-[1.02]"
           >
             <div className="relative">
               <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full group-hover:bg-primary/40 transition-colors" />
-              <img src={logo} alt="Coolpool" className="h-16 w-auto object-contain relative z-10" />
+              <img
+                src={logo}
+                alt="Coolpool"
+                className="h-12 md:h-16 w-auto object-contain relative z-10"
+              />
             </div>
           </Link>
 

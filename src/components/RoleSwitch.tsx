@@ -43,7 +43,10 @@ export function RoleSwitch({ className }: { className?: string }) {
       role="tablist"
       aria-label="Switch role"
       className={cn(
-        "inline-flex items-center rounded-full bg-muted/70 p-1 shadow-inner",
+        // leading-none keeps the pills from inheriting a tall line-height
+        // (e.g. Ant Design's <Header> sets line-height:64px, which otherwise
+        // makes the toggle balloon out of the bar).
+        "inline-flex shrink-0 items-center rounded-full bg-muted/70 p-1 shadow-inner leading-none",
         className,
       )}
     >
@@ -57,7 +60,7 @@ export function RoleSwitch({ className }: { className?: string }) {
             aria-selected={active}
             onClick={() => go(mode)}
             className={cn(
-              "rounded-full px-3.5 py-1.5 text-sm font-semibold transition-all duration-200",
+              "rounded-full px-2.5 py-1.5 text-xs font-semibold leading-none transition-all duration-200 sm:px-3 sm:text-sm",
               active
                 ? "bg-background text-primary shadow-sm"
                 : "text-muted-foreground hover:text-foreground",
