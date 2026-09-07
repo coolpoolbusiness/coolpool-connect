@@ -34,10 +34,10 @@ export function IdentityVerificationPicker() {
               type="button"
               onClick={() => setSelected(m.key)}
               className={cn(
-                "flex flex-col items-center gap-1.5 rounded-2xl border p-3 text-center transition active:scale-95",
+                "flex flex-col items-center gap-1.5 rounded-2xl border-2 p-3 text-center shadow-sm transition active:scale-95",
                 active
-                  ? "border-primary bg-primary/5 ring-2 ring-primary/20"
-                  : "border-gray-200 bg-white hover:border-primary/40",
+                  ? "border-primary bg-primary/10 ring-2 ring-primary/20"
+                  : "border-gray-200 bg-gray-50 hover:border-primary/40 hover:bg-white",
               )}
             >
               <span
