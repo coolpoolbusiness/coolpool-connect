@@ -52,7 +52,13 @@ export const Route = createRootRoute({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      // maximum-scale=1 stops iOS Safari from auto-zooming the page when a form
+      // field is focused (the keyboard-zoom bug); viewport-fit=cover lets our
+      // safe-area insets work under the notch / home indicator.
+      {
+        name: "viewport",
+        content: "width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover",
+      },
       { title: "Coolpool — Smart intercity ride-sharing" },
       {
         name: "description",
