@@ -9,81 +9,32 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as TripsRouteImport } from './routes/trips'
-import { Route as TermsRouteImport } from './routes/terms'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as RefundPolicyRouteImport } from './routes/refund-policy'
-import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
-import { Route as PricingRouteImport } from './routes/pricing'
-import { Route as MembersRouteImport } from './routes/members'
-import { Route as MemberRouteImport } from './routes/member'
-import { Route as HostRouteImport } from './routes/host'
-import { Route as ContactRouteImport } from './routes/contact'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AboutRouteImport } from './routes/about'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as ContactRouteImport } from './routes/contact'
+import { Route as HostRouteImport } from './routes/host'
+import { Route as InboxRouteImport } from './routes/inbox'
+import { Route as MemberRouteImport } from './routes/member'
+import { Route as MembersRouteImport } from './routes/members'
+import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
+import { Route as RefundPolicyRouteImport } from './routes/refund-policy'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as TermsRouteImport } from './routes/terms'
+import { Route as TripsRouteImport } from './routes/trips'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
-import { Route as TrackTokenRouteImport } from './routes/track/$token'
-import { Route as RideTripIdRouteImport } from './routes/ride/$tripId'
-import { Route as DriverOnboardingRouteImport } from './routes/driver/onboarding'
-import { Route as DriverLoginRouteImport } from './routes/driver/login'
-import { Route as DriverDashboardRouteImport } from './routes/driver/dashboard'
-import { Route as BookingTripIdRouteImport } from './routes/booking/$tripId'
 import { Route as AdminDashboardRouteImport } from './routes/admin/dashboard'
+import { Route as BookingTripIdRouteImport } from './routes/booking/$tripId'
+import { Route as DriverDashboardRouteImport } from './routes/driver/dashboard'
+import { Route as DriverLoginRouteImport } from './routes/driver/login'
+import { Route as DriverOnboardingRouteImport } from './routes/driver/onboarding'
+import { Route as RideTripIdRouteImport } from './routes/ride/$tripId'
+import { Route as TrackTokenRouteImport } from './routes/track/$token'
 
-const TripsRoute = TripsRouteImport.update({
-  id: '/trips',
-  path: '/trips',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TermsRoute = TermsRouteImport.update({
-  id: '/terms',
-  path: '/terms',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RefundPolicyRoute = RefundPolicyRouteImport.update({
-  id: '/refund-policy',
-  path: '/refund-policy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
-  id: '/privacy-policy',
-  path: '/privacy-policy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PricingRoute = PricingRouteImport.update({
-  id: '/pricing',
-  path: '/pricing',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MembersRoute = MembersRouteImport.update({
-  id: '/members',
-  path: '/members',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MemberRoute = MemberRouteImport.update({
-  id: '/member',
-  path: '/member',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const HostRoute = HostRouteImport.update({
-  id: '/host',
-  path: '/host',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ContactRoute = ContactRouteImport.update({
-  id: '/contact',
-  path: '/contact',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AboutRoute = AboutRouteImport.update({
@@ -91,9 +42,64 @@ const AboutRoute = AboutRouteImport.update({
   path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HostRoute = HostRouteImport.update({
+  id: '/host',
+  path: '/host',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InboxRoute = InboxRouteImport.update({
+  id: '/inbox',
+  path: '/inbox',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MemberRoute = MemberRouteImport.update({
+  id: '/member',
+  path: '/member',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MembersRoute = MembersRouteImport.update({
+  id: '/members',
+  path: '/members',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
+  id: '/privacy-policy',
+  path: '/privacy-policy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RefundPolicyRoute = RefundPolicyRouteImport.update({
+  id: '/refund-policy',
+  path: '/refund-policy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TripsRoute = TripsRouteImport.update({
+  id: '/trips',
+  path: '/trips',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
@@ -101,29 +107,9 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/admin/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TrackTokenRoute = TrackTokenRouteImport.update({
-  id: '/track/$token',
-  path: '/track/$token',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RideTripIdRoute = RideTripIdRouteImport.update({
-  id: '/ride/$tripId',
-  path: '/ride/$tripId',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DriverOnboardingRoute = DriverOnboardingRouteImport.update({
-  id: '/driver/onboarding',
-  path: '/driver/onboarding',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DriverLoginRoute = DriverLoginRouteImport.update({
-  id: '/driver/login',
-  path: '/driver/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DriverDashboardRoute = DriverDashboardRouteImport.update({
-  id: '/driver/dashboard',
-  path: '/driver/dashboard',
+const AdminDashboardRoute = AdminDashboardRouteImport.update({
+  id: '/admin/dashboard',
+  path: '/admin/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BookingTripIdRoute = BookingTripIdRouteImport.update({
@@ -131,9 +117,29 @@ const BookingTripIdRoute = BookingTripIdRouteImport.update({
   path: '/booking/$tripId',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminDashboardRoute = AdminDashboardRouteImport.update({
-  id: '/admin/dashboard',
-  path: '/admin/dashboard',
+const DriverDashboardRoute = DriverDashboardRouteImport.update({
+  id: '/driver/dashboard',
+  path: '/driver/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DriverLoginRoute = DriverLoginRouteImport.update({
+  id: '/driver/login',
+  path: '/driver/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DriverOnboardingRoute = DriverOnboardingRouteImport.update({
+  id: '/driver/onboarding',
+  path: '/driver/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RideTripIdRoute = RideTripIdRouteImport.update({
+  id: '/ride/$tripId',
+  path: '/ride/$tripId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TrackTokenRoute = TrackTokenRouteImport.update({
+  id: '/track/$token',
+  path: '/track/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -143,6 +149,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/contact': typeof ContactRoute
   '/host': typeof HostRoute
+  '/inbox': typeof InboxRoute
   '/member': typeof MemberRoute
   '/members': typeof MembersRoute
   '/pricing': typeof PricingRoute
@@ -166,6 +173,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/contact': typeof ContactRoute
   '/host': typeof HostRoute
+  '/inbox': typeof InboxRoute
   '/member': typeof MemberRoute
   '/members': typeof MembersRoute
   '/pricing': typeof PricingRoute
@@ -190,6 +198,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/contact': typeof ContactRoute
   '/host': typeof HostRoute
+  '/inbox': typeof InboxRoute
   '/member': typeof MemberRoute
   '/members': typeof MembersRoute
   '/pricing': typeof PricingRoute
@@ -215,6 +224,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/contact'
     | '/host'
+    | '/inbox'
     | '/member'
     | '/members'
     | '/pricing'
@@ -238,6 +248,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/contact'
     | '/host'
+    | '/inbox'
     | '/member'
     | '/members'
     | '/pricing'
@@ -261,6 +272,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/contact'
     | '/host'
+    | '/inbox'
     | '/member'
     | '/members'
     | '/pricing'
@@ -285,6 +297,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ContactRoute: typeof ContactRoute
   HostRoute: typeof HostRoute
+  InboxRoute: typeof InboxRoute
   MemberRoute: typeof MemberRoute
   MembersRoute: typeof MembersRoute
   PricingRoute: typeof PricingRoute
@@ -305,81 +318,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/trips': {
-      id: '/trips'
-      path: '/trips'
-      fullPath: '/trips'
-      preLoaderRoute: typeof TripsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/terms': {
-      id: '/terms'
-      path: '/terms'
-      fullPath: '/terms'
-      preLoaderRoute: typeof TermsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/refund-policy': {
-      id: '/refund-policy'
-      path: '/refund-policy'
-      fullPath: '/refund-policy'
-      preLoaderRoute: typeof RefundPolicyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/privacy-policy': {
-      id: '/privacy-policy'
-      path: '/privacy-policy'
-      fullPath: '/privacy-policy'
-      preLoaderRoute: typeof PrivacyPolicyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/pricing': {
-      id: '/pricing'
-      path: '/pricing'
-      fullPath: '/pricing'
-      preLoaderRoute: typeof PricingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/members': {
-      id: '/members'
-      path: '/members'
-      fullPath: '/members'
-      preLoaderRoute: typeof MembersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/member': {
-      id: '/member'
-      path: '/member'
-      fullPath: '/member'
-      preLoaderRoute: typeof MemberRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/host': {
-      id: '/host'
-      path: '/host'
-      fullPath: '/host'
-      preLoaderRoute: typeof HostRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/contact': {
-      id: '/contact'
-      path: '/contact'
-      fullPath: '/contact'
-      preLoaderRoute: typeof ContactRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/about': {
@@ -389,11 +332,88 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/host': {
+      id: '/host'
+      path: '/host'
+      fullPath: '/host'
+      preLoaderRoute: typeof HostRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/inbox': {
+      id: '/inbox'
+      path: '/inbox'
+      fullPath: '/inbox'
+      preLoaderRoute: typeof InboxRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/member': {
+      id: '/member'
+      path: '/member'
+      fullPath: '/member'
+      preLoaderRoute: typeof MemberRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/members': {
+      id: '/members'
+      path: '/members'
+      fullPath: '/members'
+      preLoaderRoute: typeof MembersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy-policy': {
+      id: '/privacy-policy'
+      path: '/privacy-policy'
+      fullPath: '/privacy-policy'
+      preLoaderRoute: typeof PrivacyPolicyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/refund-policy': {
+      id: '/refund-policy'
+      path: '/refund-policy'
+      fullPath: '/refund-policy'
+      preLoaderRoute: typeof RefundPolicyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/trips': {
+      id: '/trips'
+      path: '/trips'
+      fullPath: '/trips'
+      preLoaderRoute: typeof TripsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/': {
@@ -403,39 +423,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/track/$token': {
-      id: '/track/$token'
-      path: '/track/$token'
-      fullPath: '/track/$token'
-      preLoaderRoute: typeof TrackTokenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ride/$tripId': {
-      id: '/ride/$tripId'
-      path: '/ride/$tripId'
-      fullPath: '/ride/$tripId'
-      preLoaderRoute: typeof RideTripIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/driver/onboarding': {
-      id: '/driver/onboarding'
-      path: '/driver/onboarding'
-      fullPath: '/driver/onboarding'
-      preLoaderRoute: typeof DriverOnboardingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/driver/login': {
-      id: '/driver/login'
-      path: '/driver/login'
-      fullPath: '/driver/login'
-      preLoaderRoute: typeof DriverLoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/driver/dashboard': {
-      id: '/driver/dashboard'
-      path: '/driver/dashboard'
-      fullPath: '/driver/dashboard'
-      preLoaderRoute: typeof DriverDashboardRouteImport
+    '/admin/dashboard': {
+      id: '/admin/dashboard'
+      path: '/admin/dashboard'
+      fullPath: '/admin/dashboard'
+      preLoaderRoute: typeof AdminDashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/booking/$tripId': {
@@ -445,11 +437,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BookingTripIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/dashboard': {
-      id: '/admin/dashboard'
-      path: '/admin/dashboard'
-      fullPath: '/admin/dashboard'
-      preLoaderRoute: typeof AdminDashboardRouteImport
+    '/driver/dashboard': {
+      id: '/driver/dashboard'
+      path: '/driver/dashboard'
+      fullPath: '/driver/dashboard'
+      preLoaderRoute: typeof DriverDashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/driver/login': {
+      id: '/driver/login'
+      path: '/driver/login'
+      fullPath: '/driver/login'
+      preLoaderRoute: typeof DriverLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/driver/onboarding': {
+      id: '/driver/onboarding'
+      path: '/driver/onboarding'
+      fullPath: '/driver/onboarding'
+      preLoaderRoute: typeof DriverOnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ride/$tripId': {
+      id: '/ride/$tripId'
+      path: '/ride/$tripId'
+      fullPath: '/ride/$tripId'
+      preLoaderRoute: typeof RideTripIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/track/$token': {
+      id: '/track/$token'
+      path: '/track/$token'
+      fullPath: '/track/$token'
+      preLoaderRoute: typeof TrackTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -461,6 +481,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ContactRoute: ContactRoute,
   HostRoute: HostRoute,
+  InboxRoute: InboxRoute,
   MemberRoute: MemberRoute,
   MembersRoute: MembersRoute,
   PricingRoute: PricingRoute,
@@ -481,12 +502,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

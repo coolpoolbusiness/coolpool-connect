@@ -16,6 +16,7 @@ export interface AppwriteCollectionIds {
   deletedAccounts: string;
   memberVerifications: string;
   noShowReports: string;
+  messages: string;
 }
 
 function optionalCollectionId(value: string | undefined): string {
@@ -114,6 +115,11 @@ export function getCollectionIds(): AppwriteCollectionIds {
       import.meta.env.VITE_APPWRITE_COLLECTION_NO_SHOW_REPORTS ||
       process.env.APPWRITE_COLLECTION_NO_SHOW_REPORTS ||
       "coolpool_no_show_reports",
+    // Fixed ID created by scripts/create-messages-collection.mjs.
+    messages:
+      import.meta.env.VITE_APPWRITE_COLLECTION_MESSAGES ||
+      process.env.APPWRITE_COLLECTION_MESSAGES ||
+      "coolpool_messages",
   };
 }
 

@@ -2193,3 +2193,204 @@ export async function listNoShowReportsByTrip(tripId: string): Promise<
   ]);
   return res.documents.map((d: any) => ({ bookingId: String(d.booking_id || ""), status: String(d.status || "open") }));
 }
+
+// ── Messages / Inbox ─────────────────────────────────────────────────────────
+// One document per chat message between a guest and a host about a specific
+// trip (after the guest has booked). Each message grants read+update to BOTH
+// participants (document security), so the client SDK can list a user's threads.
+
+export interface MessageDoc {
+  id: string;
+  threadId: string;
+  tripId: string;
+  hostUserId: string;
+  guestUserId: string;
+  senderUserId: string;
+  body: string;
+  tripRoute: string | null;
+  hostName: string;
+  guestName: string;
+  createdAt: string;
+  readByHost: boolean;
+  readByGuest: boolean;
+}
+
+export interface ThreadSummary {
+  threadId: string;
+  tripId: string;
+  tripRoute: string | null;
+  hostUserId: string;
+  guestUserId: string;
+  otherUserId: string; // the counterpart, relative to the current user
+  otherName: string;
+  iAmHost: boolean;
+  lastBody: string;
+  lastAt: string;
+  unread: number;
+}
+
+/** Stable thread id for a (trip, guest) pair — the host is implied by the trip. */
+export function makeThreadId(tripId: string, guestUserId: string): string {
+  return `${tripId}_${guestUserId}`;
+}
+
+function toMessage(doc: any): MessageDoc {
+  return {
+    id: String(doc.$id || ""),
+    threadId: String(doc.thread_id || ""),
+    tripId: String(doc.trip_id || ""),
+    hostUserId: String(doc.host_user_id || ""),
+    guestUserId: String(doc.guest_user_id || ""),
+    senderUserId: String(doc.sender_user_id || ""),
+    body: String(doc.body || ""),
+    tripRoute: doc.trip_route ? String(doc.trip_route) : null,
+    hostName: String(doc.host_name || ""),
+    guestName: String(doc.guest_name || ""),
+    createdAt: String(doc.$createdAt || ""),
+    readByHost: doc.read_by_host === true,
+    readByGuest: doc.read_by_guest === true,
+  };
+}
+
+export async function sendMessage(input: {
+  tripId: string;
+  hostUserId: string;
+  guestUserId: string;
+  senderUserId: string;
+  body: string;
+  tripRoute?: string | null;
+  hostName?: string | null;
+  guestName?: string | null;
+}): Promise<MessageDoc> {
+  const c = ids();
+  const threadId = makeThreadId(input.tripId, input.guestUserId);
+  const senderIsHost = input.senderUserId === input.hostUserId;
+  const doc = await databases.createDocument(
+    appwriteConfig.databaseId,
+    c.messages,
+    ID.unique(),
+    {
+      thread_id: threadId,
+      trip_id: input.tripId,
+      host_user_id: input.hostUserId,
+      guest_user_id: input.guestUserId,
+      sender_user_id: input.senderUserId,
+      body: input.body.slice(0, 2000),
+      trip_route: input.tripRoute ?? null,
+      host_name: input.hostName ?? null,
+      guest_name: input.guestName ?? null,
+      // The sender has implicitly "read" their own message.
+      read_by_host: senderIsHost,
+      read_by_guest: !senderIsHost,
+    },
+    [
+      Permission.read(Role.user(input.hostUserId)),
+      Permission.update(Role.user(input.hostUserId)),
+      Permission.read(Role.user(input.guestUserId)),
+      Permission.update(Role.user(input.guestUserId)),
+    ],
+  );
+  return toMessage(doc);
+}
+
+export async function listThreadMessages(threadId: string, max = 200): Promise<MessageDoc[]> {
+  const c = ids();
+  const res = await databases.listDocuments(appwriteConfig.databaseId, c.messages, [
+    Query.equal("thread_id", threadId),
+    Query.orderAsc("$createdAt"),
+    Query.limit(max),
+  ]);
+  return res.documents.map(toMessage);
+}
+
+/** All of the current user's threads (as host or guest), newest activity first. */
+export async function listMyThreads(userId: string): Promise<ThreadSummary[]> {
+  const c = ids();
+  const [asHost, asGuest] = await Promise.all([
+    databases.listDocuments(appwriteConfig.databaseId, c.messages, [
+      Query.equal("host_user_id", userId),
+      Query.orderDesc("$createdAt"),
+      Query.limit(300),
+    ]),
+    databases.listDocuments(appwriteConfig.databaseId, c.messages, [
+      Query.equal("guest_user_id", userId),
+      Query.orderDesc("$createdAt"),
+      Query.limit(300),
+    ]),
+  ]);
+  // A user is never both host and guest of the same message, so no dedup needed.
+  const all = [...asHost.documents, ...asGuest.documents].map(toMessage);
+  const byThread = new Map<string, MessageDoc[]>();
+  for (const m of all) {
+    const list = byThread.get(m.threadId) ?? [];
+    list.push(m);
+    byThread.set(m.threadId, list);
+  }
+  const summaries: ThreadSummary[] = [];
+  for (const [threadId, msgs] of byThread) {
+    msgs.sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1));
+    const last = msgs[msgs.length - 1];
+    const iAmHost = last.hostUserId === userId;
+    const unread = msgs.filter(
+      (m) => m.senderUserId !== userId && (iAmHost ? !m.readByHost : !m.readByGuest),
+    ).length;
+    // Names are denormalised per message but may be blank on some — pick the
+    // most recent non-empty one for the counterpart.
+    const pickName = (get: (m: MessageDoc) => string) => {
+      for (let i = msgs.length - 1; i >= 0; i--) {
+        const n = get(msgs[i]).trim();
+        if (n) return n;
+      }
+      return "";
+    };
+    const otherName = iAmHost
+      ? pickName((m) => m.guestName) || "Guest"
+      : pickName((m) => m.hostName) || "Host";
+    summaries.push({
+      threadId,
+      tripId: last.tripId,
+      tripRoute: last.tripRoute,
+      hostUserId: last.hostUserId,
+      guestUserId: last.guestUserId,
+      otherUserId: iAmHost ? last.guestUserId : last.hostUserId,
+      otherName,
+      iAmHost,
+      lastBody: last.body,
+      lastAt: last.createdAt,
+      unread,
+    });
+  }
+  summaries.sort((a, b) => (a.lastAt < b.lastAt ? 1 : -1));
+  return summaries;
+}
+
+/** Total unread messages across all of the user's threads (for the nav badge). */
+export async function countUnreadMessages(userId: string): Promise<number> {
+  const threads = await listMyThreads(userId);
+  return threads.reduce((sum, t) => sum + t.unread, 0);
+}
+
+/** Mark every message in a thread that the current user received as read. */
+export async function markThreadRead(threadId: string, userId: string): Promise<void> {
+  const c = ids();
+  const res = await databases.listDocuments(appwriteConfig.databaseId, c.messages, [
+    Query.equal("thread_id", threadId),
+    Query.limit(200),
+  ]);
+  const toUpdate = res.documents
+    .map(toMessage)
+    .filter((m) => m.senderUserId !== userId)
+    .filter((m) => (m.hostUserId === userId ? !m.readByHost : !m.readByGuest));
+  await Promise.all(
+    toUpdate.map((m) =>
+      databases
+        .updateDocument(
+          appwriteConfig.databaseId,
+          c.messages,
+          m.id,
+          m.hostUserId === userId ? { read_by_host: true } : { read_by_guest: true },
+        )
+        .catch(() => undefined),
+    ),
+  );
+}

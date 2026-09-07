@@ -1,11 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Ticket, MapPin, Calendar, Users, Loader2, ShieldCheck, KeyRound, CheckCircle2, Radio, Bell, Star, Share2 } from "lucide-react";
+import { Ticket, MapPin, Calendar, Users, Loader2, ShieldCheck, KeyRound, CheckCircle2, Radio, Bell, Star, Share2, MessageCircle } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { SiteHeader } from "@/components/SiteHeader";
 import { GetVerifiedButton } from "@/components/GetVerifiedButton";
+import { MessageThreadDrawer, type ThreadParams } from "@/components/MessageThreadDrawer";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -168,6 +169,7 @@ function TripsPage() {
   const { user, loading: authLoading } = useAuth();
   const { booking: highlightedBookingId } = Route.useSearch();
   const [expandedId, setExpandedId] = useState<string | null>(highlightedBookingId ?? null);
+  const [msgThread, setMsgThread] = useState<ThreadParams | null>(null);
   const highlightRef = useRef<HTMLDivElement | null>(null);
   const queryClient = useQueryClient();
 
@@ -589,6 +591,31 @@ function TripsPage() {
                         </div>
                       )}
 
+                      {trip && trip.hostId && trip.hostId !== user?.$id && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full rounded-2xl"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const hostName =
+                              trip.hostDisplayName ||
+                              hostProfileMap.get(trip.hostId)?.fullName ||
+                              "Host";
+                            setMsgThread({
+                              tripId: trip.id,
+                              hostUserId: trip.hostId,
+                              guestUserId: user?.$id ?? "",
+                              otherName: hostName,
+                              tripRoute: `${trip.fromLocation.split(",")[0]} → ${trip.toLocation.split(",")[0]}`,
+                            });
+                          }}
+                        >
+                          <MessageCircle className="mr-1.5 h-4 w-4" />
+                          Message host
+                        </Button>
+                      )}
+
                       {trip && (
                         <Button
                           asChild
@@ -628,6 +655,12 @@ function TripsPage() {
           </div>
         )}
       </main>
+
+      <MessageThreadDrawer
+        open={!!msgThread}
+        onClose={() => setMsgThread(null)}
+        thread={msgThread}
+      />
 
       {/* Passenger → Host ReviewModal */}
       {reviewBooking && reviewTrip && user && (() => {

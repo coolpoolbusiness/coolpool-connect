@@ -1,6 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import logo from "@/assets/logo.png";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   type LucideIcon,
   LogOut,
@@ -9,9 +10,11 @@ import {
   Shield,
   Ticket,
   Home,
+  MessageCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { countUnreadMessages } from "@/data/appwrite-repository";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,22 +34,31 @@ function BottomTab({
   label,
   active,
   search,
+  badge = 0,
 }: {
   to: string;
   icon: LucideIcon;
   label: string;
   active: boolean;
   search?: Record<string, unknown>;
+  badge?: number;
 }) {
   return (
     <Link
       to={to as never}
       search={search as never}
-      className={`flex flex-1 flex-col items-center justify-center gap-1 transition-transform active:scale-95 ${
+      className={`relative flex flex-1 flex-col items-center justify-center gap-1 transition-transform active:scale-95 ${
         active ? "text-primary" : "text-muted-foreground"
       }`}
     >
-      <Icon className="h-5 w-5" />
+      <span className="relative">
+        <Icon className="h-5 w-5" />
+        {badge > 0 && (
+          <span className="absolute -right-2 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 text-[9px] font-bold leading-none text-white">
+            {badge > 9 ? "9+" : badge}
+          </span>
+        )}
+      </span>
       <span className="text-[10px] font-semibold">{label}</span>
     </Link>
   );
@@ -63,6 +75,14 @@ export function SiteHeader() {
   });
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const dashboardPath = isAdmin ? "/admin/dashboard" : isDriver ? "/driver/dashboard" : null;
+
+  // Unread message count for the Inbox tab badge (cheap, refreshed periodically).
+  const { data: unread = 0 } = useQuery({
+    queryKey: ["unread-messages", user?.$id],
+    queryFn: () => (user ? countUnreadMessages(user.$id) : Promise.resolve(0)),
+    enabled: !!user,
+    refetchInterval: 20000,
+  });
 
   return (
     <>
@@ -237,15 +257,22 @@ export function SiteHeader() {
               active={pathname.startsWith("/members")}
             />
           )}
-          {dashboardPath ? (
+          {user ? (
             <BottomTab
-              to={dashboardPath}
-              icon={isAdmin ? Shield : LayoutDashboard}
-              label={isAdmin ? "Admin" : "Host"}
-              active={pathname.startsWith("/driver") || pathname.startsWith("/admin")}
+              to="/inbox"
+              icon={MessageCircle}
+              label="Inbox"
+              active={pathname.startsWith("/inbox")}
+              badge={unread}
             />
           ) : (
-            <BottomTab to="/auth" icon={LayoutDashboard} label="Host" active={pathname.startsWith("/auth")} />
+            <BottomTab
+              to="/members"
+              search={memberSearch}
+              icon={MessageCircle}
+              label="Inbox"
+              active={pathname.startsWith("/inbox")}
+            />
           )}
           {user ? (
             <button
