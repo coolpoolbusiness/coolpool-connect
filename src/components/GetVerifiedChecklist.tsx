@@ -20,9 +20,7 @@ import {
   getVehicleByDriverUserId,
 } from "@/data/appwrite-repository";
 import { SelfieVerificationCard } from "@/components/SelfieVerificationCard";
-import { AadhaarVerificationCard } from "@/components/AadhaarVerificationCard";
-import { PanVerificationCard } from "@/components/PanVerificationCard";
-import { DrivingLicenceVerificationCard } from "@/components/DrivingLicenceVerificationCard";
+import { IdentityVerificationPicker } from "@/components/IdentityVerificationPicker";
 
 function DoneRow({ title, detail }: { title: string; detail?: string | null }) {
   return (
@@ -174,14 +172,7 @@ export function GetVerifiedChecklist({ className = "" }: { className?: string })
           (identityDone ? (
             <DoneRow title="Identity verified" detail={`${idMethod}${idName ? ` · ${idName}` : ""}`} />
           ) : (
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                Choose <b>any one</b> — it's instant, no uploads.
-              </p>
-              <AadhaarVerificationCard />
-              <PanVerificationCard />
-              <DrivingLicenceVerificationCard />
-            </div>
+            <IdentityVerificationPicker />
           ))}
 
         {step === 2 &&

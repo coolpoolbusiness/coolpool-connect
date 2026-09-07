@@ -17,9 +17,7 @@ import type { LucideIcon } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { getMyMemberVerification } from "@/data/appwrite-repository";
 import { SelfieVerificationCard } from "@/components/SelfieVerificationCard";
-import { AadhaarVerificationCard } from "@/components/AadhaarVerificationCard";
-import { PanVerificationCard } from "@/components/PanVerificationCard";
-import { DrivingLicenceVerificationCard } from "@/components/DrivingLicenceVerificationCard";
+import { IdentityVerificationPicker } from "@/components/IdentityVerificationPicker";
 
 const STEPS: { key: string; title: string; subtitle: string; icon: LucideIcon }[] = [
   { key: "details", title: "Your details", subtitle: "How travellers reach you", icon: User },
@@ -192,16 +190,7 @@ export function HostOnboardingWizard({
 
         {step === 2 && <SelfieVerificationCard />}
 
-        {step === 3 && (
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Choose <b>any one</b> — it's instant, no uploads.
-            </p>
-            <AadhaarVerificationCard />
-            <PanVerificationCard />
-            <DrivingLicenceVerificationCard />
-          </div>
-        )}
+        {step === 3 && <IdentityVerificationPicker />}
 
         {step === 4 && (
           <div className="rounded-3xl border border-emerald-100 bg-emerald-50 p-6 text-center">
