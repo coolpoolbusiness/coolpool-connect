@@ -13,6 +13,8 @@ import {
   Badge,
   Dropdown,
   Drawer,
+  AutoComplete,
+  Input,
 } from "antd";
 import {
   Route as RouteIcon,
@@ -29,9 +31,15 @@ import {
   ShieldCheck,
   IdCard,
   Menu as MenuIcon,
+  Search as SearchIcon,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { listActiveTrips } from "@/data/appwrite-repository";
+import {
+  listActiveTrips,
+  listAllBookings,
+  listAllTrips,
+  listDriverProfiles,
+} from "@/data/appwrite-repository";
 import { BannersManager } from "@/components/admin/BannersManager";
 import { PricingPanel } from "@/components/admin/PricingPanel";
 import { listPayoutRequestsAsAdmin } from "@/components/admin/adminUserApi";
@@ -94,6 +102,67 @@ function AdminDashboardPage() {
   const openPayouts = payoutRequests.filter(
     (r) => r.status === "pending" || r.status === "processing" || r.status === "part_paid",
   ).length;
+
+  // ── Global search across bookings / trips / hosts ──────────────────────────
+  const [pendingSearch, setPendingSearch] = useState("");
+  const [searchText, setSearchText] = useState("");
+  const { data: searchBookings = [] } = useQuery({
+    queryKey: ["admin-all-bookings"],
+    queryFn: () => listAllBookings(1000),
+    enabled: isAdmin,
+  });
+  const { data: searchTrips = [] } = useQuery({
+    queryKey: ["admin-all-trips"],
+    queryFn: () => listAllTrips(1000),
+    enabled: isAdmin,
+  });
+  const { data: searchDrivers = [] } = useQuery({
+    queryKey: ["admin-drivers"],
+    queryFn: listDriverProfiles,
+    enabled: isAdmin,
+  });
+
+  const goTo = (key: string, term = "") => {
+    setPendingSearch(term);
+    setActiveModule(key);
+    setMobileNavOpen(false);
+    setSearchText("");
+  };
+
+  const searchOptions = (() => {
+    const q = searchText.trim().toLowerCase();
+    if (q.length < 2) return [];
+    const opts: { value: string; label: string }[] = [];
+    const push = (module: string, term: string, label: string) =>
+      opts.push({ value: `${module}::${term}::${opts.length}`, label });
+
+    searchDrivers
+      .filter((d) => (d.fullName || "").toLowerCase().includes(q) || (d.phone || "").includes(q))
+      .slice(0, 4)
+      .forEach((d) => push("hosts", d.fullName, `Host · ${d.fullName}`));
+
+    searchTrips
+      .filter(
+        (t) =>
+          t.fromLocation.toLowerCase().includes(q) || t.toLocation.toLowerCase().includes(q),
+      )
+      .slice(0, 4)
+      .forEach((t) => {
+        const route = `${t.fromLocation.split(",")[0]} → ${t.toLocation.split(",")[0]}`;
+        push("trips", t.fromLocation.split(",")[0], `Trip · ${route}`);
+      });
+
+    searchBookings
+      .filter(
+        (b) =>
+          (b.passengerName || "").toLowerCase().includes(q) ||
+          (b.passengerPhone || "").includes(q),
+      )
+      .slice(0, 5)
+      .forEach((b) => push("bookings", b.passengerName, `Booking · ${b.passengerName}`));
+
+    return opts;
+  })();
 
   const payoutsLabel =
     openPayouts > 0 ? (
@@ -227,7 +296,7 @@ function AdminDashboardPage() {
               <Menu
                 mode="inline"
                 selectedKeys={[activeModule]}
-                onClick={({ key }) => setActiveModule(key)}
+                onClick={({ key }) => goTo(key)}
                 className="border-none px-3 mt-2"
                 items={navItems}
               />
@@ -263,10 +332,7 @@ function AdminDashboardPage() {
           <Menu
             mode="inline"
             selectedKeys={[activeModule]}
-            onClick={({ key }) => {
-              setActiveModule(key);
-              setMobileNavOpen(false);
-            }}
+            onClick={({ key }) => goTo(key)}
             className="border-none"
             items={navItems}
           />
@@ -289,8 +355,26 @@ function AdminDashboardPage() {
                 {MODULE_TITLES[activeModule] ?? "Admin"}
               </span>
             </div>
-            <div className="flex items-center gap-5">
-              <div className="text-right hidden md:flex flex-col justify-center max-w-[200px]">
+            <div className="flex items-center gap-3 sm:gap-5">
+              <AutoComplete
+                value={searchText}
+                onChange={setSearchText}
+                options={searchOptions}
+                onSelect={(value: string) => {
+                  const [module, term] = value.split("::");
+                  goTo(module, term);
+                }}
+                style={{ width: 240 }}
+                className="hidden md:block"
+                popupMatchSelectWidth={320}
+              >
+                <Input
+                  prefix={<SearchIcon size={15} className="text-muted-foreground" />}
+                  placeholder="Search hosts, trips, bookings…"
+                  allowClear
+                />
+              </AutoComplete>
+              <div className="text-right hidden lg:flex flex-col justify-center max-w-[200px]">
                 <Text strong className="text-base leading-tight block truncate">
                   {getUserDisplayName(user)}
                 </Text>
@@ -333,11 +417,11 @@ function AdminDashboardPage() {
           </Header>
 
           <Content className="p-6 md:p-10 max-w-7xl mx-auto w-full">
-            {activeModule === "overview"  && <OverviewPanel onNavigate={setActiveModule} />}
-            {activeModule === "guests"    && <GuestManagementPanel />}
-            {activeModule === "hosts"     && <HostManagementPanel />}
-            {activeModule === "trips"     && <TripsPanel />}
-            {activeModule === "bookings"  && <BookingsPanel />}
+            {activeModule === "overview"  && <OverviewPanel onNavigate={goTo} />}
+            {activeModule === "guests"    && <GuestManagementPanel initialSearch={pendingSearch} />}
+            {activeModule === "hosts"     && <HostManagementPanel initialSearch={pendingSearch} />}
+            {activeModule === "trips"     && <TripsPanel initialSearch={pendingSearch} />}
+            {activeModule === "bookings"  && <BookingsPanel initialSearch={pendingSearch} />}
             {activeModule === "payouts"   && <PayoutsPanel />}
             {activeModule === "verifications" && <VerificationsPanel />}
             {activeModule === "kyc"           && <KycPanel />}

@@ -41,9 +41,9 @@ const VERIF_COLOR: Record<string, string> = {
   rejected: "error",
 };
 
-export function HostManagementPanel() {
+export function HostManagementPanel({ initialSearch = "" }: { initialSearch?: string } = {}) {
   const queryClient = useQueryClient();
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(initialSearch);
   const [selected, setSelected] = useState<DriverProfile | null>(null);
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
 

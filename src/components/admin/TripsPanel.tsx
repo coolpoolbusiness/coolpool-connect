@@ -33,10 +33,10 @@ const STATUS_OPTIONS: { label: string; value: TripStatus | "all" }[] = [
   { label: "Cancelled", value: "cancelled" },
 ];
 
-export function TripsPanel() {
+export function TripsPanel({ initialSearch = "" }: { initialSearch?: string } = {}) {
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<TripStatus | "all">("all");
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(initialSearch);
   const [selected, setSelected] = useState<Trip | null>(null);
 
   const { data: trips = [], isLoading } = useQuery({

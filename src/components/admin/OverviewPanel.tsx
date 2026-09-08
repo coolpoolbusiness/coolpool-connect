@@ -8,13 +8,16 @@ import {
   Ticket,
   Users,
   Wallet,
+  ChevronRight,
 } from "lucide-react";
+import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import {
   listAllBookings,
   listAllTrips,
   listAllVehicles,
   listDriverProfiles,
 } from "@/data/appwrite-repository";
+import { listPayoutRequestsAsAdmin } from "@/components/admin/adminUserApi";
 import { platformFee, PLATFORM_FEE_PERCENT } from "@/lib/pricing";
 
 const { Title, Text } = Typography;
@@ -47,7 +50,48 @@ export function OverviewPanel({ onNavigate }: { onNavigate: (key: string) => voi
     queryFn: () => listAllBookings(500),
   });
 
+  const { data: payoutRequests = [] } = useQuery({
+    queryKey: ["admin-payout-requests"],
+    queryFn: () => listPayoutRequestsAsAdmin(500),
+  });
+
   const loading = driversLoading || vehiclesLoading || tripsLoading || bookingsLoading;
+
+  const openPayouts = payoutRequests.filter(
+    (r) => r.status === "pending" || r.status === "processing" || r.status === "part_paid",
+  ).length;
+
+  // Bookings over the last 14 days, for the mini bar chart.
+  const bookingsByDay = (() => {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const days: { day: string; bookings: number; ts: number }[] = [];
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date(start);
+      d.setDate(d.getDate() - i);
+      days.push({
+        day: d.toLocaleDateString("en-IN", { day: "numeric", month: "short" }),
+        bookings: 0,
+        ts: d.getTime(),
+      });
+    }
+    for (const b of bookings) {
+      const t = new Date(b.createdAt).getTime();
+      const slot = days.find((x) => t >= x.ts && t < x.ts + 86400000);
+      if (slot) slot.bookings += 1;
+    }
+    return days;
+  })();
+
+  // Most popular routes by number of trips.
+  const topRoutes = (() => {
+    const m = new Map<string, number>();
+    for (const t of trips) {
+      const r = `${t.fromLocation.split(",")[0]} → ${t.toLocation.split(",")[0]}`;
+      m.set(r, (m.get(r) ?? 0) + 1);
+    }
+    return [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+  })();
 
   const activeTrips = trips.filter((t) => t.status === "scheduled" || t.status === "in_progress");
   const completedTrips = trips.filter((t) => t.status === "completed").length;
@@ -143,6 +187,48 @@ export function OverviewPanel({ onNavigate }: { onNavigate: (key: string) => voi
         </Text>
       </div>
 
+      {/* Action needed — a quick "what's waiting on me" summary. */}
+      {(pendingVerifications > 0 || openPayouts > 0) && (
+        <div className="grid gap-4 sm:grid-cols-2">
+          {pendingVerifications > 0 && (
+            <button
+              type="button"
+              onClick={() => onNavigate("verifications")}
+              className="flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-left transition hover:bg-amber-100/70"
+            >
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber-500 text-white">
+                <AlertTriangle size={18} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-bold text-amber-900">
+                  {pendingVerifications} verification{pendingVerifications > 1 ? "s" : ""} waiting
+                </p>
+                <p className="text-sm text-amber-700/80">Review selfies & IDs</p>
+              </div>
+              <ChevronRight size={18} className="text-amber-400" />
+            </button>
+          )}
+          {openPayouts > 0 && (
+            <button
+              type="button"
+              onClick={() => onNavigate("payouts")}
+              className="flex items-center gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-4 text-left transition hover:bg-primary/10"
+            >
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-white">
+                <Wallet size={18} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-bold text-gray-900">
+                  {openPayouts} payout{openPayouts > 1 ? "s" : ""} to process
+                </p>
+                <p className="text-sm text-muted-foreground">Pay hosts their earnings</p>
+              </div>
+              <ChevronRight size={18} className="text-primary/50" />
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {stats.map((s) => {
           const colors = STAT_COLORS[s.tagColor] ?? STAT_COLORS.purple;
@@ -190,6 +276,64 @@ export function OverviewPanel({ onNavigate }: { onNavigate: (key: string) => voi
             </Card>
           );
         })}
+      </div>
+
+      {/* Analytics — bookings trend + top routes */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card
+          className="rounded-3xl border-none shadow-soft bg-white/80 backdrop-blur-sm lg:col-span-2"
+          styles={{ body: { padding: "24px 24px 12px" } }}
+          style={{ outline: "none" }}
+        >
+          <Title level={4} style={{ margin: 0 }}>Bookings — last 14 days</Title>
+          <div className="mt-4 h-[220px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={bookingsByDay} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                <XAxis
+                  dataKey="day"
+                  tick={{ fontSize: 10, fill: "#9aa" }}
+                  interval={1}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <Tooltip
+                  cursor={{ fill: "rgba(108,92,231,0.08)" }}
+                  contentStyle={{ borderRadius: 12, border: "1px solid #eee", fontSize: 12 }}
+                />
+                <Bar dataKey="bookings" radius={[6, 6, 0, 0]} maxBarSize={26}>
+                  {bookingsByDay.map((_, i) => (
+                    <Cell key={i} fill="#6C5CE7" />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
+
+        <Card
+          className="rounded-3xl border-none shadow-soft bg-white/80 backdrop-blur-sm"
+          styles={{ body: { padding: "24px" } }}
+          style={{ outline: "none" }}
+        >
+          <Title level={4} style={{ margin: 0 }}>Top routes</Title>
+          <div className="mt-4 space-y-3">
+            {topRoutes.length === 0 ? (
+              <Text type="secondary" className="text-sm">No trips yet.</Text>
+            ) : (
+              topRoutes.map(([route, count], i) => (
+                <div key={route} className="flex items-center gap-3">
+                  <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                    {i + 1}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-sm font-medium text-gray-800">
+                    {route}
+                  </span>
+                  <span className="shrink-0 text-sm font-bold text-primary">{count}</span>
+                </div>
+              ))
+            )}
+          </div>
+        </Card>
       </div>
 
       <div className="flex flex-col gap-8">

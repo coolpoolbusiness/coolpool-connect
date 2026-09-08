@@ -36,8 +36,8 @@ const BOOKING_STATUS_COLOR: Record<string, string> = {
   no_show: "error",
 };
 
-export function GuestManagementPanel() {
-  const [search, setSearch] = useState("");
+export function GuestManagementPanel({ initialSearch = "" }: { initialSearch?: string } = {}) {
+  const [search, setSearch] = useState(initialSearch);
   const [selected, setSelected] = useState<GuestRow | null>(null);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
 

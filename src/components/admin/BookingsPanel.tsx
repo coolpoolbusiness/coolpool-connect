@@ -33,10 +33,10 @@ const STATUS_OPTIONS: { label: string; value: BookingStatus | "all" }[] = [
   { label: "No-show", value: "no_show" },
 ];
 
-export function BookingsPanel() {
+export function BookingsPanel({ initialSearch = "" }: { initialSearch?: string } = {}) {
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<BookingStatus | "all">("all");
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(initialSearch);
   const [selected, setSelected] = useState<Booking | null>(null);
 
   const { data: bookings = [], isLoading: bookingsLoading } = useQuery({
