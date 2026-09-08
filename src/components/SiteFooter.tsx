@@ -1,6 +1,5 @@
 import { Link } from "@tanstack/react-router";
 import logo from "@/assets/logo.png";
-import { Sparkles } from "lucide-react";
 
 export function SiteFooter() {
   return (
@@ -19,9 +18,9 @@ export function SiteFooter() {
             <h4 className="font-bold text-sm mb-3">Product</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>
-                <a href="/#find-a-ride" className="hover:text-foreground transition-base">
+                <Link to="/" className="hover:text-foreground transition-base">
                   Find a ride
-                </a>
+                </Link>
               </li>
               <li>
                 <Link to="/host" className="hover:text-foreground transition-base">

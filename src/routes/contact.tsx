@@ -1,18 +1,38 @@
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
-import { Mail, Phone, MapPin, Clock, Send } from "lucide-react";
+import { Mail, Phone, MapPin, Clock, Send, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/contact")({
   component: ContactPage,
 });
 
+const SUPPORT_EMAIL = "info@coolpool.in";
+
 function ContactPage() {
+  const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
+  const [sent, setSent] = useState(false);
+  const set = (k: keyof typeof form) => (e: { target: { value: string } }) =>
+    setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // No backend yet — compose an email in the user's mail app (honest + works
+    // everywhere). Server-side handling can replace this later.
+    const subject = encodeURIComponent(`[Coolpool] ${form.subject || "Support"} — ${form.name}`);
+    const body = encodeURIComponent(
+      `Name: ${form.name}\nEmail: ${form.email}\nTopic: ${form.subject}\n\n${form.message}`,
+    );
+    window.location.href = `mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`;
+    setSent(true);
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50/50">
       <SiteHeader />
-      <main className="container mx-auto px-4 py-20 max-w-6xl flex-1">
+      <main className="container mx-auto px-4 pt-28 sm:pt-32 pb-24 sm:pb-20 max-w-6xl flex-1">
         <div className="text-center max-w-2xl mx-auto mb-16">
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">Get in Touch</h1>
           <p className="text-lg text-muted-foreground">
@@ -86,7 +106,20 @@ function ContactPage() {
           <div className="lg:col-span-2">
             <div className="bg-white rounded-3xl p-8 sm:p-10 shadow-soft border border-border/50 h-full">
               <h2 className="text-2xl font-bold mb-6">Send us a message</h2>
-              <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
+              {sent && (
+                <div className="mb-6 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+                  <p className="text-sm text-emerald-800">
+                    Your email app should have opened with the message ready to send. If it didn't,
+                    write to us directly at{" "}
+                    <a href={`mailto:${SUPPORT_EMAIL}`} className="font-semibold underline">
+                      {SUPPORT_EMAIL}
+                    </a>
+                    .
+                  </p>
+                </div>
+              )}
+              <form className="space-y-6" onSubmit={handleSubmit}>
                 <div className="grid sm:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label htmlFor="name" className="text-sm font-medium text-slate-700">
@@ -95,6 +128,9 @@ function ContactPage() {
                     <input
                       type="text"
                       id="name"
+                      required
+                      value={form.name}
+                      onChange={set("name")}
                       className="w-full flex h-12 rounded-xl border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                       placeholder="John Doe"
                     />
@@ -106,6 +142,9 @@ function ContactPage() {
                     <input
                       type="email"
                       id="email"
+                      required
+                      value={form.email}
+                      onChange={set("email")}
                       className="w-full flex h-12 rounded-xl border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                       placeholder="john@example.com"
                     />
@@ -118,6 +157,9 @@ function ContactPage() {
                   </label>
                   <select
                     id="subject"
+                    required
+                    value={form.subject}
+                    onChange={set("subject")}
                     className="w-full flex h-12 rounded-xl border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <option value="">Select a topic</option>
@@ -135,12 +177,15 @@ function ContactPage() {
                   <textarea
                     id="message"
                     rows={5}
+                    required
+                    value={form.message}
+                    onChange={set("message")}
                     className="w-full flex min-h-[120px] rounded-xl border border-input bg-transparent px-3 py-3 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 resize-y"
                     placeholder="How can we help you?"
                   ></textarea>
                 </div>
 
-                <Button className="w-full sm:w-auto px-8" size="lg">
+                <Button type="submit" className="w-full sm:w-auto px-8" size="lg">
                   Send Message
                   <Send className="ml-2 h-4 w-4" />
                 </Button>

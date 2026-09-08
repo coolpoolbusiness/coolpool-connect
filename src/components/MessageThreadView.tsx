@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { message } from "antd";
 import { Send, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { getUserDisplayName } from "@/lib/user-display";
@@ -72,6 +73,10 @@ export function MessageThreadView({
       setText("");
       void qc.invalidateQueries({ queryKey: ["thread", threadId] });
       void qc.invalidateQueries({ queryKey: ["my-threads", me] });
+    },
+    onError: () => {
+      // Keep the typed text so the user can retry.
+      message.error("Message not sent — check your connection and try again.");
     },
   });
 

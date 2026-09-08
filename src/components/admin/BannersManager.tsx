@@ -207,6 +207,7 @@ export function BannersManager() {
 
       <div className="bg-white/90 backdrop-blur-md p-4 rounded-3xl shadow-soft">
         <Table
+          scroll={{ x: "max-content" }}
           dataSource={banners}
           columns={columns}
           rowKey="id"

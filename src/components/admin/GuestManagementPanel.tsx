@@ -204,6 +204,7 @@ export function GuestManagementPanel() {
           <CreateUserButton role="guest" />
         </div>
         <Table
+          scroll={{ x: "max-content" }}
           rowKey="userId"
           loading={bookingsLoading || tripsLoading}
           dataSource={filtered}

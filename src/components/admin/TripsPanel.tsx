@@ -123,6 +123,7 @@ export function TripsPanel() {
           <Select value={statusFilter} onChange={setStatusFilter} options={STATUS_OPTIONS} style={{ width: 180 }} />
         </div>
         <Table
+          scroll={{ x: "max-content" }}
           rowKey="id"
           loading={isLoading}
           dataSource={filtered}

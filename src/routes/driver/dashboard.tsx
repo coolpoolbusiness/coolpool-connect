@@ -2745,12 +2745,14 @@ function DriverDashboardPage() {
                             <p className="text-sm font-semibold text-gray-500 leading-tight">
                               Total Earnings
                             </p>
-                            <p className="text-xs text-gray-400 mt-1">Settlement pending</p>
+                            <p className="text-xs text-gray-400 mt-1">Lifetime, after fee</p>
                           </div>
                         </div>
                         {/* Right — number */}
                         <div className="text-right shrink-0">
-                          <p className="text-3xl font-black text-gray-900 leading-none">₹0</p>
+                          <p className="text-3xl font-black text-gray-900 leading-none">
+                            ₹{lifetimeEarnings.toLocaleString("en-IN")}
+                          </p>
                         </div>
                       </div>
                     </Card>

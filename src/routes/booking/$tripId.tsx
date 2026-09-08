@@ -420,7 +420,13 @@ function BookingTripPage() {
         name: "Coolpool",
         description: `Booking: ${segment.fromLabel} → ${segment.toLabel}`,
         prefill: {
-          contact: user?.phone ?? "",
+          // The booker's number lives in prefs.defaultPhone (or the first
+          // passenger row) — user.phone is usually empty for phone+PIN accounts.
+          contact:
+            passengers[0]?.phone ||
+            (user?.prefs as { defaultPhone?: string } | undefined)?.defaultPhone ||
+            user?.phone ||
+            "",
         },
         theme: { color: "#7C3AED" },
         // Surface UPI as the first, prominent payment block, with all other
@@ -911,8 +917,12 @@ function BookingTripPage() {
                   />
                   <span className="text-sm text-muted-foreground leading-snug">
                     I accept the{" "}
-                    <Link to="/" className="text-primary underline">
+                    <Link to="/terms" target="_blank" className="text-primary underline">
                       Terms &amp; Conditions
+                    </Link>{" "}
+                    and{" "}
+                    <Link to="/refund-policy" target="_blank" className="text-primary underline">
+                      Refund Policy
                     </Link>
                   </span>
                 </label>
@@ -952,6 +962,21 @@ function BookingTripPage() {
                   `Pay & book${selected.size > 0 ? ` • ${formatCurrency(totalAmount)}` : ""}`
                 )}
               </Button>
+              {!paymentPending &&
+                (selected.size === 0 ||
+                  !passengerDetailsComplete ||
+                  !termsAccepted ||
+                  !callConsentGiven) && (
+                  <p className="mt-2 text-center text-xs text-muted-foreground">
+                    {selected.size === 0
+                      ? "Select a seat to continue."
+                      : !passengerDetailsComplete
+                        ? "Add each passenger's name, phone & gender."
+                        : !termsAccepted
+                          ? "Please accept the Terms & Refund Policy."
+                          : "Tick the consent box to continue."}
+                  </p>
+                )}
             </Card>
           </div>
         )}

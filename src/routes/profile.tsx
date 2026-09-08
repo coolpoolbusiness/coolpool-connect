@@ -78,6 +78,7 @@ function ProfilePage() {
   const { user, roles = [], isDriver, isAdmin, signOut, authLoading } = useAuth();
   const navigate = useNavigate();
   const [verifyOpen, setVerifyOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const { data: selfie } = useQuery({
     queryKey: ["my-verification", user?.$id],
@@ -159,7 +160,22 @@ function ProfilePage() {
               </span>
             )}
           </div>
-          <p className="mt-2 font-mono text-xs text-muted-foreground">{memberCode}</p>
+          <button
+            type="button"
+            onClick={() => {
+              try {
+                void navigator.clipboard?.writeText(memberCode);
+                setCopied(true);
+                window.setTimeout(() => setCopied(false), 1500);
+              } catch {
+                /* clipboard unavailable */
+              }
+            }}
+            className="mt-2 font-mono text-xs text-muted-foreground underline-offset-2 hover:underline"
+            title="Tap to copy your member ID"
+          >
+            {copied ? "Copied ✓" : memberCode}
+          </button>
         </div>
 
         {/* Verification strip */}

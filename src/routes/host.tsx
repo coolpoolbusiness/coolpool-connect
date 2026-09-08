@@ -34,7 +34,7 @@ function HostPage() {
   return (
     <div className="min-h-screen flex flex-col bg-gradient-hero">
       <SiteHeader />
-      <main className="container mx-auto px-4 py-20 max-w-6xl flex-1">
+      <main className="container mx-auto px-4 pt-28 sm:pt-32 pb-24 sm:pb-20 max-w-6xl flex-1">
         <div className="grid gap-12 lg:grid-cols-2 items-center">
           <div>
             <div className="inline-flex items-center gap-2 rounded-3xl bg-primary/10 px-3 py-1 text-xs font-bold text-primary uppercase tracking-wider mb-6">
@@ -48,18 +48,16 @@ function HostPage() {
               Join Coolpool's verified ride host network. Share your intercity route, help travelers
               reach their destination, and cover your trip costs with ease.
             </p>
-            <div className="mt-10 flex flex-col sm:flex-row gap-4">
+            <div className="mt-10 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
               <Button asChild variant="hero" size="xl" className="px-8">
-                <Link to="/auth">Become a Ride Host</Link>
+                <Link to="/auth">Get started as a host</Link>
               </Button>
-              <Button
-                asChild
-                variant="outline"
-                size="xl"
-                className="px-8 bg-white/50 backdrop-blur-sm"
-              >
-                <Link to="/auth">Login</Link>
-              </Button>
+              <span className="text-sm text-muted-foreground">
+                Already a host?{" "}
+                <Link to="/auth" className="font-semibold text-primary underline">
+                  Log in
+                </Link>
+              </span>
             </div>
           </div>
 
@@ -87,8 +85,7 @@ function HostPage() {
                 <div>
                   <h3 className="text-lg font-bold">Ride Host Dashboard</h3>
                   <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
-                    Manage bookings, track earnings, and coordinate pickups through our unified
-                    operations port.
+                    One simple dashboard for your bookings, earnings, and pickups.
                   </p>
                 </div>
               </div>

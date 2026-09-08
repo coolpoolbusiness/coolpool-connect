@@ -50,7 +50,7 @@ import {
   ArrowLeftRight,
   ArrowUpDown,
   Star,
-  Filter,
+  Search,
   PlusCircle,
   Share2,
 } from "lucide-react";
@@ -1282,12 +1282,27 @@ export function TripSearchForm({ variant, id }: { variant: "landing" | "page"; i
                 </Form.Item>
               </div>
 
-              {loading && (
-                <div className="flex justify-center items-center gap-2 pb-4 text-xs text-muted-foreground">
-                  <div className="h-3 w-3 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-                  Searching…
-                </div>
-              )}
+              {/* Explicit search action so editing From/To (without tapping a
+                  date chip) has an obvious way to run the search. */}
+              <div className="px-5 pb-4">
+                <button
+                  type="button"
+                  onClick={() => form.submit()}
+                  disabled={loading}
+                  className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-primary text-base font-bold text-white shadow-glow transition active:scale-[0.98] disabled:opacity-60"
+                >
+                  {loading ? (
+                    <>
+                      <span className="h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+                      Searching…
+                    </>
+                  ) : (
+                    <>
+                      <Search className="h-5 w-5" /> Search rides
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </ConfigProvider>
         </Form>
@@ -1792,13 +1807,10 @@ export function TripSearchResults({ variant }: { variant: "landing" | "page" }) 
 
       {!loading && results.length > 0 && (
         <div className="space-y-4 w-full max-w-xl mx-auto min-w-0 pb-20">
-          <div className="flex items-center justify-between gap-4 px-1">
+          <div className="px-1">
             <h3 className="text-lg sm:text-xl font-bold tracking-tight text-gray-900">
               {dayjs(results[0].departureAt).format("dddd, MMM DD")}
             </h3>
-            <UiButton variant="ghost" size="sm" className="rounded-2xl text-primary font-bold">
-              <Filter className="h-4 w-4 mr-2" /> Filter
-            </UiButton>
           </div>
 
           <div className="space-y-2.5">

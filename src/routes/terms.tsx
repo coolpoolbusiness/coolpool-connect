@@ -10,16 +10,11 @@ function TermsPage() {
   return (
     <div className="min-h-screen flex flex-col bg-slate-50/50">
       <SiteHeader />
-      <main className="container mx-auto px-4 py-20 max-w-4xl flex-1">
+      <main className="container mx-auto px-4 pt-28 sm:pt-32 pb-24 sm:pb-20 max-w-4xl flex-1">
         <div className="bg-white rounded-3xl p-8 sm:p-12 shadow-soft border border-border/50">
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-2">Terms & Conditions</h1>
           <p className="text-sm text-muted-foreground mb-8">
-            Last updated:{" "}
-            {new Date().toLocaleDateString("en-US", {
-              month: "long",
-              day: "numeric",
-              year: "numeric",
-            })}
+            Last updated: 8 September 2026
           </p>
 
           <div className="space-y-8 text-slate-600 leading-relaxed">

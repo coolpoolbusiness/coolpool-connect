@@ -12,6 +12,7 @@ import {
   Button,
   Badge,
   Dropdown,
+  Drawer,
 } from "antd";
 import {
   Route as RouteIcon,
@@ -27,6 +28,7 @@ import {
   UserX,
   ShieldCheck,
   IdCard,
+  Menu as MenuIcon,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { listActiveTrips } from "@/data/appwrite-repository";
@@ -58,6 +60,10 @@ const MODULE_TITLES: Record<string, string> = {
   payouts: "Payouts",
   kyc: "Driver KYC",
   banners: "Banners Manager",
+  hosts: "Host Management",
+  guests: "Guest Management",
+  verifications: "Verifications",
+  deleted: "Deleted Accounts",
 };
 
 export const Route = createFileRoute("/admin/dashboard")({
@@ -74,6 +80,20 @@ function AdminDashboardPage() {
   const { isAdmin, signOut, user, roles } = useAuth();
   const [activeModule, setActiveModule] = useState("overview");
   const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  const navItems = [
+    { key: "overview", icon: <LayoutDashboard size={20} />, label: "Overview" },
+    { key: "guests", icon: <Ticket size={20} />, label: "Guest Management" },
+    { key: "hosts", icon: <Car size={20} />, label: "Host Management" },
+    { key: "trips", icon: <RouteIcon size={20} />, label: "Trip Manager" },
+    { key: "bookings", icon: <Ticket size={20} />, label: "Booking Manager" },
+    { key: "payouts", icon: <Wallet size={20} />, label: "Payouts" },
+    { key: "verifications", icon: <ShieldCheck size={20} />, label: "Verifications" },
+    { key: "kyc", icon: <IdCard size={20} />, label: "Driver KYC" },
+    { key: "banners", icon: <ImageIcon size={20} />, label: "Banners Manager" },
+    { key: "deleted", icon: <UserX size={20} />, label: "Deleted Accounts" },
+  ];
 
   const { data: trips = [], isLoading: tripsLoading } = useQuery({
     queryKey: ["admin-active-trips"],
@@ -185,18 +205,7 @@ function AdminDashboardPage() {
                 selectedKeys={[activeModule]}
                 onClick={({ key }) => setActiveModule(key)}
                 className="border-none px-3 mt-2"
-                items={[
-                  { key: "overview",  icon: <LayoutDashboard size={20} />, label: "Overview" },
-                  { key: "guests",    icon: <Ticket size={20} />,          label: "Guest Management" },
-                  { key: "hosts",     icon: <Car size={20} />,             label: "Host Management" },
-                  { key: "trips",     icon: <RouteIcon size={20} />,       label: "Trip Manager" },
-                  { key: "bookings",  icon: <Ticket size={20} />,          label: "Booking Manager" },
-                  { key: "payouts",   icon: <Wallet size={20} />,          label: "Payouts" },
-                  { key: "verifications", icon: <ShieldCheck size={20} />, label: "Verifications" },
-                  { key: "kyc",       icon: <IdCard size={20} />,          label: "Driver KYC" },
-                  { key: "banners",   icon: <ImageIcon size={20} />,       label: "Banners Manager" },
-                  { key: "deleted",   icon: <UserX size={20} />,           label: "Deleted Accounts" },
-                ]}
+                items={navItems}
               />
             </div>
 
@@ -218,15 +227,43 @@ function AdminDashboardPage() {
           </div>
         </Sider>
 
+        {/* Mobile nav — the Sider is hidden below lg, so phones/tablets open this. */}
+        <Drawer
+          open={mobileNavOpen}
+          onClose={() => setMobileNavOpen(false)}
+          placement="left"
+          width={280}
+          styles={{ body: { padding: 0 } }}
+          title={<img src={logo} alt="Coolpool" className="h-10 w-auto object-contain" />}
+        >
+          <Menu
+            mode="inline"
+            selectedKeys={[activeModule]}
+            onClick={({ key }) => {
+              setActiveModule(key);
+              setMobileNavOpen(false);
+            }}
+            className="border-none"
+            items={navItems}
+          />
+        </Drawer>
+
         <Layout>
-          <Header className="px-8 flex items-center justify-between border-b border-border/60 backdrop-blur-md sticky top-0 z-10 bg-background/60" style={{ height: 80 }}>
-            <div>
+          <Header className="px-4 sm:px-8 flex items-center justify-between border-b border-border/60 backdrop-blur-md sticky top-0 z-10 bg-background/60" style={{ height: 80 }}>
+            <div className="flex items-center gap-2">
+              <Button
+                type="text"
+                aria-label="Open menu"
+                className="lg:hidden"
+                icon={<MenuIcon size={22} />}
+                onClick={() => setMobileNavOpen(true)}
+              />
               <Title level={3} style={{ margin: 0 }} className="hidden sm:block">
                 {MODULE_TITLES[activeModule] ?? "Dashboard"}
               </Title>
-              <div className="sm:hidden">
-                <img src={logo} alt="Coolpool Logo" className="h-16 w-auto object-contain" />
-              </div>
+              <span className="sm:hidden font-bold text-base">
+                {MODULE_TITLES[activeModule] ?? "Admin"}
+              </span>
             </div>
             <div className="flex items-center gap-5">
               <div className="text-right hidden md:flex flex-col justify-center max-w-[200px]">

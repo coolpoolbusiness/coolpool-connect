@@ -112,6 +112,7 @@ export function VerificationsPanel() {
       {tab === "selfies" ? (
         <Card className="rounded-3xl border-none shadow-card bg-white/90 p-2 overflow-hidden">
           <Table
+            scroll={{ x: "max-content" }}
             rowKey="$id"
             loading={selfies.isLoading}
             dataSource={selfies.data ?? []}
@@ -149,6 +150,7 @@ export function VerificationsPanel() {
       ) : (
         <Card className="rounded-3xl border-none shadow-card bg-white/90 p-2 overflow-hidden">
           <Table
+            scroll={{ x: "max-content" }}
             rowKey="$id"
             loading={noshows.isLoading}
             dataSource={noshows.data ?? []}

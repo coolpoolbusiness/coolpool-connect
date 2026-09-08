@@ -264,6 +264,7 @@ export function HostManagementPanel() {
           <CreateUserButton role="host" />
         </div>
         <Table
+          scroll={{ x: "max-content" }}
           rowKey="id"
           loading={driversLoading}
           dataSource={filtered}

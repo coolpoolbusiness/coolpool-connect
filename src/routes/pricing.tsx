@@ -11,7 +11,7 @@ function PricingPage() {
   return (
     <div className="min-h-screen flex flex-col bg-slate-50/50">
       <SiteHeader />
-      <main className="container mx-auto px-4 py-20 max-w-4xl flex-1">
+      <main className="container mx-auto px-4 pt-28 sm:pt-32 pb-24 sm:pb-20 max-w-4xl flex-1">
         <div className="text-center max-w-2xl mx-auto mb-16">
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">Pricing & Payments</h1>
           <p className="text-lg text-muted-foreground">
@@ -51,7 +51,9 @@ function PricingPage() {
             <h3 className="text-xl font-bold text-slate-900 mb-3">Platform & Convenience Fees</h3>
             <p className="text-slate-600 leading-relaxed">
               To maintain our platform, provide 24/7 support, and ensure secure infrastructure,
-              Coolpool applies a nominal platform or convenience fee to bookings.
+              Coolpool applies a flat <span className="font-bold text-slate-900">5% platform fee</span>,
+              paid by the host out of each booking. Passengers pay only the fare the host sets — the
+              fee is deducted from the host's earnings, never added on top.
             </p>
           </div>
 

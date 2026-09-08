@@ -122,6 +122,7 @@ export function BookingsPanel() {
           <Select value={statusFilter} onChange={setStatusFilter} options={STATUS_OPTIONS} style={{ width: 180 }} />
         </div>
         <Table
+          scroll={{ x: "max-content" }}
           rowKey="id"
           loading={bookingsLoading || tripsLoading}
           dataSource={filtered}

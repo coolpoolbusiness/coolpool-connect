@@ -581,6 +581,7 @@ export function PayoutsPanel() {
           </div>
         </div>
         <Table
+          scroll={{ x: "max-content" }}
           rowKey="id"
           loading={requestsLoading || driversLoading}
           dataSource={filteredRequests}
@@ -726,6 +727,7 @@ export function PayoutsPanel() {
           </div>
         </div>
         <Table
+          scroll={{ x: "max-content" }}
           rowKey="userId"
           loading={requestsLoading || driversLoading}
           dataSource={ledger}
