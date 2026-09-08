@@ -15,7 +15,8 @@ import {
   Drawer,
   Popconfirm,
 } from "antd";
-import { Plus, WalletCards, Zap } from "lucide-react";
+import { Plus, WalletCards, Zap, QrCode } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import { listDriverProfiles, listAllTrips, listAllBookings } from "@/data/appwrite-repository";
 import { hostNetEarnings, estimateFeeFromNet, PLATFORM_FEE_PERCENT } from "@/lib/pricing";
 import type { PayoutRequest, PayoutStatus } from "@/lib/domain";
@@ -103,6 +104,7 @@ export function PayoutsPanel() {
   const [detailHostId, setDetailHostId] = useState<string | null>(null);
   const [detailRequestId, setDetailRequestId] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  const [qrRequest, setQrRequest] = useState<PayoutRequest | null>(null);
   const [form] = Form.useForm<{
     paymentReference?: string;
     adminNote?: string;
@@ -483,6 +485,22 @@ export function PayoutsPanel() {
                 Pay via Route
               </Button>
             </Popconfirm>
+          )}
+        {(record.status === "pending" ||
+          record.status === "processing" ||
+          record.status === "part_paid") &&
+          !!record.upiId && (
+            <Button
+              size="small"
+              icon={<QrCode size={13} />}
+              onClick={(e) => {
+                e.stopPropagation();
+                setQrRequest(record);
+              }}
+              className="!m-0 mt-1 rounded-full border-primary/40 text-primary text-xs font-semibold"
+            >
+              UPI QR
+            </Button>
           )}
       </div>
     );
@@ -1203,6 +1221,62 @@ export function PayoutsPanel() {
             Record payment
           </Button>
         </Form>
+      </Modal>
+
+      {/* Pay a host by UPI — turns their saved UPI ID into a QR pre-filled with
+          the exact payable amount. Admin scans it with any UPI app, pays, then
+          marks the row Paid (with the UPI reference). */}
+      <Modal
+        open={!!qrRequest}
+        title="Pay host via UPI"
+        onCancel={() => setQrRequest(null)}
+        footer={null}
+        destroyOnClose
+      >
+        {qrRequest &&
+          (() => {
+            const amt = Math.max(0, payableOf(qrRequest) - transferredOf(qrRequest));
+            const name = qrRequest.accountHolderName || "Coolpool Host";
+            const link =
+              `upi://pay?pa=${encodeURIComponent(qrRequest.upiId ?? "")}` +
+              `&pn=${encodeURIComponent(name)}` +
+              `&am=${amt.toFixed(2)}&cu=INR` +
+              `&tn=${encodeURIComponent(`Coolpool payout ${qrRequest.id.slice(-6)}`)}`;
+            return (
+              <div className="mt-2 text-center">
+                <p className="text-sm text-muted-foreground">Paying</p>
+                <p className="text-lg font-bold">{name}</p>
+                <p className="mt-1 text-3xl font-black text-primary">{formatMoney(amt)}</p>
+                <div className="my-5 flex justify-center">
+                  <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+                    <QRCodeSVG value={link} size={208} level="M" marginSize={2} />
+                  </div>
+                </div>
+                <p className="text-sm">
+                  Scan with any UPI app (GPay / PhonePe / Paytm) — the amount is pre-filled.
+                </p>
+                <p className="mt-1 font-mono text-xs text-muted-foreground">
+                  UPI: {qrRequest.upiId}
+                </p>
+                <div className="mt-5 flex gap-2">
+                  <Button block onClick={() => setQrRequest(null)}>
+                    Close
+                  </Button>
+                  <Button
+                    type="primary"
+                    block
+                    onClick={() => {
+                      const r = qrRequest;
+                      setQrRequest(null);
+                      openAction(r, "paid");
+                    }}
+                  >
+                    I've paid — mark Paid
+                  </Button>
+                </div>
+              </div>
+            );
+          })()}
       </Modal>
     </div>
   );
