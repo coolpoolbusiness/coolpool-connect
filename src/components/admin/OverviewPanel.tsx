@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Card, Typography, Tag, Spin, List } from "antd";
+import { Card, Typography, Tag, List } from "antd";
 import {
   AlertTriangle,
   Car,
@@ -121,7 +121,7 @@ export function OverviewPanel({ onNavigate }: { onNavigate: (key: string) => voi
       icon: <AlertTriangle size={28} />,
       tag: pendingVerifications > 0 ? "Needs review" : "All clear",
       tagColor: pendingVerifications > 0 ? "warning" : "success",
-      onClick: () => onNavigate("hosts"),
+      onClick: () => onNavigate("verifications"),
     },
   ];
 
@@ -177,7 +177,11 @@ export function OverviewPanel({ onNavigate }: { onNavigate: (key: string) => voi
               </div>
               <div className="mt-5">
                 <div className="text-3xl font-extrabold leading-none tracking-tight" style={{ color: "#1a1a2e" }}>
-                  {loading ? <Spin size="small" /> : s.value}
+                  {loading ? (
+                    <span className="inline-block h-7 w-16 animate-pulse rounded-lg bg-gray-200" />
+                  ) : (
+                    s.value
+                  )}
                 </div>
                 <Text type="secondary" className="text-sm mt-2 block group-hover:text-primary transition-colors">
                   {s.label}

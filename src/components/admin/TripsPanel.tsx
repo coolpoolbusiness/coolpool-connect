@@ -8,6 +8,8 @@ import {
   listDriverProfiles,
   updateTrip,
 } from "@/data/appwrite-repository";
+import { Download } from "lucide-react";
+import { downloadCsv } from "@/lib/csv";
 import { getBookingPassengers } from "@/lib/booking-passengers";
 import { passengerGenderLabel, passengerSeatLabel } from "@/lib/passenger-display";
 import { hostNetEarnings } from "@/lib/pricing";
@@ -120,7 +122,33 @@ export function TripsPanel() {
             onChange={(e) => setSearch(e.target.value)}
             style={{ maxWidth: 360 }}
           />
-          <Select value={statusFilter} onChange={setStatusFilter} options={STATUS_OPTIONS} style={{ width: 180 }} />
+          <div className="flex items-center gap-2">
+            <Select value={statusFilter} onChange={setStatusFilter} options={STATUS_OPTIONS} style={{ width: 180 }} />
+            <Button
+              icon={<Download size={15} />}
+              onClick={() =>
+                downloadCsv(
+                  `coolpool-trips-${new Date().toISOString().slice(0, 10)}`,
+                  [
+                    { header: "From", value: (t) => t.fromLocation },
+                    { header: "To", value: (t) => t.toLocation },
+                    { header: "Host", value: (t) => hostNameByUserId.get(t.hostId) ?? t.hostId },
+                    { header: "Departure", value: (t) => t.departureAt },
+                    { header: "Price", value: (t) => t.totalPrice },
+                    { header: "Status", value: (t) => t.status },
+                  ],
+                  filtered,
+                )
+              }
+            >
+              Export
+            </Button>
+          </div>
+        </div>
+        <div className="px-4 pt-2">
+          <Text type="secondary" className="text-xs">
+            Showing {filtered.length} of {trips.length}
+          </Text>
         </div>
         <Table
           scroll={{ x: "max-content" }}

@@ -15,8 +15,9 @@ import {
   Drawer,
   Popconfirm,
 } from "antd";
-import { Plus, WalletCards, Zap, QrCode } from "lucide-react";
+import { Plus, WalletCards, Zap, QrCode, Download } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
+import { downloadCsv } from "@/lib/csv";
 import { listDriverProfiles, listAllTrips, listAllBookings } from "@/data/appwrite-repository";
 import { hostNetEarnings, estimateFeeFromNet, PLATFORM_FEE_PERCENT } from "@/lib/pricing";
 import type { PayoutRequest, PayoutStatus } from "@/lib/domain";
@@ -586,6 +587,30 @@ export function PayoutsPanel() {
                 ...ALL_STATUSES.map((s) => ({ value: s, label: STATUS_LABELS[s] })),
               ]}
             />
+            <Button
+              icon={<Download size={14} />}
+              onClick={() =>
+                downloadCsv(
+                  `coolpool-payouts-${new Date().toISOString().slice(0, 10)}`,
+                  [
+                    { header: "Host", value: (r) => driverNameByUserId.get(r.driverUserId) ?? r.driverUserId },
+                    { header: "Amount", value: (r) => r.amount },
+                    { header: "Deduction", value: (r) => r.deduction ?? 0 },
+                    { header: "Payable", value: (r) => payableOf(r) },
+                    { header: "Paid", value: (r) => transferredOf(r) },
+                    { header: "Status", value: (r) => r.status },
+                    { header: "Reference", value: (r) => r.paymentReference ?? "" },
+                    { header: "Account", value: (r) => r.accountNumber ?? "" },
+                    { header: "IFSC", value: (r) => r.ifscCode ?? "" },
+                    { header: "UPI", value: (r) => r.upiId ?? "" },
+                    { header: "Processed at", value: (r) => r.processedAt ?? "" },
+                  ],
+                  filteredRequests,
+                )
+              }
+            >
+              Export
+            </Button>
             <Button
               type="primary"
               icon={<Plus size={14} />}

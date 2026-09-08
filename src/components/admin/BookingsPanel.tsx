@@ -7,6 +7,8 @@ import {
   listDriverProfiles,
   updateBookingStatus,
 } from "@/data/appwrite-repository";
+import { Download } from "lucide-react";
+import { downloadCsv } from "@/lib/csv";
 import { getBookingPassengers } from "@/lib/booking-passengers";
 import { passengerGenderLabel, passengerSeatLabel } from "@/lib/passenger-display";
 import { formatBookingCode } from "@/lib/bookingCode";
@@ -119,7 +121,36 @@ export function BookingsPanel() {
             onChange={(e) => setSearch(e.target.value)}
             style={{ maxWidth: 360 }}
           />
-          <Select value={statusFilter} onChange={setStatusFilter} options={STATUS_OPTIONS} style={{ width: 180 }} />
+          <div className="flex items-center gap-2">
+            <Select value={statusFilter} onChange={setStatusFilter} options={STATUS_OPTIONS} style={{ width: 180 }} />
+            <Button
+              icon={<Download size={15} />}
+              onClick={() =>
+                downloadCsv(
+                  `coolpool-bookings-${new Date().toISOString().slice(0, 10)}`,
+                  [
+                    { header: "Passenger", value: (b) => b.passengerName },
+                    { header: "Seats", value: (b) => b.seatsBooked },
+                    { header: "Price", value: (b) => b.segmentPrice },
+                    { header: "Status", value: (b) => b.status },
+                    { header: "Route", value: (b) => {
+                        const t = tripById.get(b.tripId);
+                        return t ? `${t.fromLocation.split(",")[0]} -> ${t.toLocation.split(",")[0]}` : "";
+                      } },
+                    { header: "Booked at", value: (b) => b.createdAt },
+                  ],
+                  filtered,
+                )
+              }
+            >
+              Export
+            </Button>
+          </div>
+        </div>
+        <div className="px-4 pt-2">
+          <Text type="secondary" className="text-xs">
+            Showing {filtered.length} of {bookings.length}
+          </Text>
         </div>
         <Table
           scroll={{ x: "max-content" }}

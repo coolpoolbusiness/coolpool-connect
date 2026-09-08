@@ -33,6 +33,8 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { listActiveTrips } from "@/data/appwrite-repository";
 import { BannersManager } from "@/components/admin/BannersManager";
+import { PricingPanel } from "@/components/admin/PricingPanel";
+import { listPayoutRequestsAsAdmin } from "@/components/admin/adminUserApi";
 import { DeletedAccountsPanel } from "@/components/admin/DeletedAccountsPanel";
 import { OverviewPanel } from "@/components/admin/OverviewPanel";
 import { GuestManagementPanel } from "@/components/admin/GuestManagementPanel";
@@ -82,15 +84,37 @@ function AdminDashboardPage() {
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
+  // Open payout requests → a badge on the Payouts nav item so a waiting queue
+  // is visible without opening the panel. Shares the panel's query cache.
+  const { data: payoutRequests = [] } = useQuery({
+    queryKey: ["admin-payout-requests"],
+    queryFn: () => listPayoutRequestsAsAdmin(500),
+    enabled: isAdmin,
+  });
+  const openPayouts = payoutRequests.filter(
+    (r) => r.status === "pending" || r.status === "processing" || r.status === "part_paid",
+  ).length;
+
+  const payoutsLabel =
+    openPayouts > 0 ? (
+      <span className="inline-flex items-center gap-2">
+        Payouts
+        <Badge count={openPayouts} size="small" color="#6b46c1" />
+      </span>
+    ) : (
+      "Payouts"
+    );
+
   const navItems = [
     { key: "overview", icon: <LayoutDashboard size={20} />, label: "Overview" },
     { key: "guests", icon: <Ticket size={20} />, label: "Guest Management" },
     { key: "hosts", icon: <Car size={20} />, label: "Host Management" },
     { key: "trips", icon: <RouteIcon size={20} />, label: "Trip Manager" },
     { key: "bookings", icon: <Ticket size={20} />, label: "Booking Manager" },
-    { key: "payouts", icon: <Wallet size={20} />, label: "Payouts" },
+    { key: "payouts", icon: <Wallet size={20} />, label: payoutsLabel },
     { key: "verifications", icon: <ShieldCheck size={20} />, label: "Verifications" },
     { key: "kyc", icon: <IdCard size={20} />, label: "Driver KYC" },
+    { key: "pricing", icon: <Settings size={20} />, label: "Pricing Rules" },
     { key: "banners", icon: <ImageIcon size={20} />, label: "Banners Manager" },
     { key: "deleted", icon: <UserX size={20} />, label: "Deleted Accounts" },
   ];
@@ -279,10 +303,11 @@ function AdminDashboardPage() {
                 menu={{
                   onClick: ({ key }) => {
                     if (key === "profile") setProfileModalOpen(true);
+                    if (key === "pricing") setActiveModule("pricing");
                   },
                   items: [
                     { key: "profile", label: "My Profile", icon: <User size={16} /> },
-                    { key: "settings", label: "System Config", icon: <Settings size={16} /> },
+                    { key: "pricing", label: "Pricing Rules", icon: <Settings size={16} /> },
                     { type: "divider" },
                     {
                       key: "logout",
@@ -316,6 +341,7 @@ function AdminDashboardPage() {
             {activeModule === "payouts"   && <PayoutsPanel />}
             {activeModule === "verifications" && <VerificationsPanel />}
             {activeModule === "kyc"           && <KycPanel />}
+            {activeModule === "pricing"   && <PricingPanel />}
             {activeModule === "banners"   && <BannersManager />}
             {activeModule === "deleted"   && <DeletedAccountsPanel />}
           </Content>
