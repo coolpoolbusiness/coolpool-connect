@@ -32,6 +32,8 @@ import {
   IdCard,
   Menu as MenuIcon,
   Search as SearchIcon,
+  MessageSquare,
+  ScrollText,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -42,10 +44,13 @@ import {
 } from "@/data/appwrite-repository";
 import { BannersManager } from "@/components/admin/BannersManager";
 import { PricingPanel } from "@/components/admin/PricingPanel";
+import { ContactMessagesPanel } from "@/components/admin/ContactMessagesPanel";
+import { ActionLogPanel } from "@/components/admin/ActionLogPanel";
 import {
   listPayoutRequestsAsAdmin,
   listMemberVerificationsAsAdmin,
   listNoShowReportsAsAdmin,
+  listContactMessagesAsAdmin,
 } from "@/components/admin/adminUserApi";
 import { DeletedAccountsPanel } from "@/components/admin/DeletedAccountsPanel";
 import { OverviewPanel } from "@/components/admin/OverviewPanel";
@@ -78,6 +83,8 @@ const MODULE_TITLES: Record<string, string> = {
   guests: "Guest Management",
   verifications: "Verifications",
   deleted: "Deleted Accounts",
+  messages: "Support Messages",
+  activity: "Activity Log",
 };
 
 export const Route = createFileRoute("/admin/dashboard")({
@@ -202,6 +209,23 @@ function AdminDashboardPage() {
       "Verifications"
     );
 
+  // Open contact messages → badge on the Support Messages nav item.
+  const { data: contactMsgs = [] } = useQuery({
+    queryKey: ["admin-contact-messages"],
+    queryFn: listContactMessagesAsAdmin,
+    enabled: isAdmin,
+  });
+  const openMessages = contactMsgs.filter((m) => m.status === "open").length;
+  const messagesLabel =
+    openMessages > 0 ? (
+      <span className="inline-flex items-center gap-2">
+        Support Messages
+        <Badge count={openMessages} size="small" color="#2f6fed" />
+      </span>
+    ) : (
+      "Support Messages"
+    );
+
   const navItems = [
     { key: "overview", icon: <LayoutDashboard size={20} />, label: "Overview" },
     { key: "guests", icon: <Ticket size={20} />, label: "Guest Management" },
@@ -211,6 +235,8 @@ function AdminDashboardPage() {
     { key: "payouts", icon: <Wallet size={20} />, label: payoutsLabel },
     { key: "verifications", icon: <ShieldCheck size={20} />, label: verificationsLabel },
     { key: "kyc", icon: <IdCard size={20} />, label: "Driver KYC" },
+    { key: "messages", icon: <MessageSquare size={20} />, label: messagesLabel },
+    { key: "activity", icon: <ScrollText size={20} />, label: "Activity Log" },
     { key: "pricing", icon: <Settings size={20} />, label: "Pricing Rules" },
     { key: "banners", icon: <ImageIcon size={20} />, label: "Banners Manager" },
     { key: "deleted", icon: <UserX size={20} />, label: "Deleted Accounts" },
@@ -453,6 +479,8 @@ function AdminDashboardPage() {
             {activeModule === "payouts"   && <PayoutsPanel />}
             {activeModule === "verifications" && <VerificationsPanel />}
             {activeModule === "kyc"           && <KycPanel />}
+            {activeModule === "messages"  && <ContactMessagesPanel />}
+            {activeModule === "activity"  && <ActionLogPanel />}
             {activeModule === "pricing"   && <PricingPanel />}
             {activeModule === "banners"   && <BannersManager />}
             {activeModule === "deleted"   && <DeletedAccountsPanel />}

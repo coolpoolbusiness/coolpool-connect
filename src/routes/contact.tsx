@@ -4,6 +4,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Mail, Phone, MapPin, Clock, Send, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { submitContactMessage } from "@/integrations/appwrite/account-server";
 
 export const Route = createFileRoute("/contact")({
   component: ContactPage,
@@ -14,19 +15,29 @@ const SUPPORT_EMAIL = "info@coolpool.in";
 function ContactPage() {
   const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
   const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState(false);
   const set = (k: keyof typeof form) => (e: { target: { value: string } }) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // No backend yet — compose an email in the user's mail app (honest + works
-    // everywhere). Server-side handling can replace this later.
-    const subject = encodeURIComponent(`[Coolpool] ${form.subject || "Support"} — ${form.name}`);
-    const body = encodeURIComponent(
-      `Name: ${form.name}\nEmail: ${form.email}\nTopic: ${form.subject}\n\n${form.message}`,
-    );
-    window.location.href = `mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`;
-    setSent(true);
+    setSending(true);
+    try {
+      // Store the message so it lands in the admin support inbox.
+      await submitContactMessage({ data: form });
+      setSent(true);
+      setForm({ name: "", email: "", subject: "", message: "" });
+    } catch {
+      // If storing fails, fall back to composing an email so the user isn't stuck.
+      const subject = encodeURIComponent(`[Coolpool] ${form.subject || "Support"} — ${form.name}`);
+      const body = encodeURIComponent(
+        `Name: ${form.name}\nEmail: ${form.email}\nTopic: ${form.subject}\n\n${form.message}`,
+      );
+      window.location.href = `mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`;
+      setSent(true);
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -110,8 +121,8 @@ function ContactPage() {
                 <div className="mb-6 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
                   <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
                   <p className="text-sm text-emerald-800">
-                    Your email app should have opened with the message ready to send. If it didn't,
-                    write to us directly at{" "}
+                    Thanks — your message has reached our support team. We'll get back to you at the
+                    email you provided. You can also reach us anytime at{" "}
                     <a href={`mailto:${SUPPORT_EMAIL}`} className="font-semibold underline">
                       {SUPPORT_EMAIL}
                     </a>
@@ -185,8 +196,8 @@ function ContactPage() {
                   ></textarea>
                 </div>
 
-                <Button type="submit" className="w-full sm:w-auto px-8" size="lg">
-                  Send Message
+                <Button type="submit" disabled={sending} className="w-full sm:w-auto px-8" size="lg">
+                  {sending ? "Sending…" : "Send Message"}
                   <Send className="ml-2 h-4 w-4" />
                 </Button>
               </form>

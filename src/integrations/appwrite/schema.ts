@@ -17,6 +17,8 @@ export interface AppwriteCollectionIds {
   memberVerifications: string;
   noShowReports: string;
   messages: string;
+  adminLog: string;
+  contactMessages: string;
 }
 
 function optionalCollectionId(value: string | undefined): string {
@@ -120,6 +122,15 @@ export function getCollectionIds(): AppwriteCollectionIds {
       import.meta.env.VITE_APPWRITE_COLLECTION_MESSAGES ||
       process.env.APPWRITE_COLLECTION_MESSAGES ||
       "coolpool_messages",
+    // Fixed IDs created by scripts/create-admin-collections.mjs.
+    adminLog:
+      import.meta.env.VITE_APPWRITE_COLLECTION_ADMIN_LOG ||
+      process.env.APPWRITE_COLLECTION_ADMIN_LOG ||
+      "coolpool_admin_log",
+    contactMessages:
+      import.meta.env.VITE_APPWRITE_COLLECTION_CONTACT_MESSAGES ||
+      process.env.APPWRITE_COLLECTION_CONTACT_MESSAGES ||
+      "coolpool_contact_messages",
   };
 }
 

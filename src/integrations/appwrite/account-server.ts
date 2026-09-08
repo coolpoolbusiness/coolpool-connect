@@ -176,13 +176,44 @@ export const deleteOwnAccount = createServerFn({ method: "POST" })
  * can only be set with the admin API key, so this is the only safe source
  * of truth for this check.
  */
-async function assertAdmin(jwt: string): Promise<void> {
+async function assertAdmin(jwt: string): Promise<{ id: string; name: string }> {
   if (!jwt) throw new Error("Missing authentication.");
   const { endpoint, project } = appwriteEnv();
   const jwtClient = new Client().setEndpoint(endpoint).setProject(project).setJWT(jwt);
   const me = await new Account(jwtClient).get();
   if (!me.labels?.includes("admin")) {
     throw new Error("Admin access required.");
+  }
+  return { id: me.$id, name: me.name || me.email || "Admin" };
+}
+
+/** Append an entry to the admin audit log. Never throws — logging must not
+ *  break the action it records. */
+async function logAction(
+  admin: { id: string; name: string },
+  action: string,
+  target?: { type?: string; id?: string; label?: string },
+  details?: string,
+): Promise<void> {
+  try {
+    const db = readEnv("VITE_APPWRITE_DATABASE_ID") || readEnv("APPWRITE_DATABASE_ID");
+    const col =
+      readEnv("VITE_APPWRITE_COLLECTION_ADMIN_LOG") ||
+      readEnv("APPWRITE_COLLECTION_ADMIN_LOG") ||
+      "coolpool_admin_log";
+    if (!db) return;
+    const databases = new Databases(adminClient());
+    await databases.createDocument(db, col, ID.unique(), {
+      admin_id: admin.id,
+      admin_name: admin.name,
+      action,
+      target_type: target?.type ?? null,
+      target_id: target?.id ?? null,
+      target_label: target?.label ?? null,
+      details: details ? details.slice(0, 512) : null,
+    });
+  } catch {
+    /* audit logging is best-effort */
   }
 }
 
@@ -331,7 +362,7 @@ export const adminUpdatePayoutRequestStatus = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }): Promise<PayoutRequest> => {
-    await assertAdmin(data.jwt);
+    const admin = await assertAdmin(data.jwt);
     if (!data.requestId) throw new Error("Missing payout request.");
     const { db, payoutsCol } = payoutEnv();
     const databases = new Databases(adminClient());
@@ -372,6 +403,12 @@ export const adminUpdatePayoutRequestStatus = createServerFn({ method: "POST" })
       payload.processed_at = new Date().toISOString();
     }
     const doc = await databases.updateDocument(db, payoutsCol, data.requestId, payload);
+    await logAction(
+      admin,
+      "payout_status",
+      { type: "payout", id: data.requestId, label: existing.accountHolderName },
+      `${existing.status} → ${data.status}${data.paymentReference ? ` · ref ${data.paymentReference}` : ""}`,
+    );
     return toPayoutRequest(doc);
   });
 
@@ -391,7 +428,7 @@ export const adminSetMemberRole = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }): Promise<{ memberCode: string }> => {
-    await assertAdmin(data.jwt);
+    const admin = await assertAdmin(data.jwt);
     if (!data.userId) throw new Error("Missing user.");
     const roleChar = (["A", "H", "G", "D", "E"].includes(data.roleChar)
       ? data.roleChar
@@ -415,6 +452,7 @@ export const adminSetMemberRole = createServerFn({ method: "POST" })
     }
 
     await users.updatePrefs(data.userId, { ...prefs, memberCode: code });
+    await logAction(admin, "member_role", { type: "user", id: data.userId, label: code }, `role → ${roleChar}`);
     return { memberCode: code };
   });
 
@@ -435,7 +473,7 @@ export const adminPayoutViaRoute = createServerFn({ method: "POST" })
     pan: input?.pan == null ? null : String(input.pan).trim().toUpperCase(),
   }))
   .handler(async ({ data }): Promise<PayoutRequest> => {
-    await assertAdmin(data.jwt);
+    const admin = await assertAdmin(data.jwt);
     if (!data.requestId) throw new Error("Missing payout request.");
 
     const { db, payoutsCol } = payoutEnv();
@@ -493,6 +531,12 @@ export const adminPayoutViaRoute = createServerFn({ method: "POST" })
       },
     });
 
+    await logAction(
+      admin,
+      "payout_route",
+      { type: "payout", id: data.requestId, label: req.accountHolderName },
+      `Paid ₹${payable} via Route (${transfer.id})`,
+    );
     const note = `Paid ₹${payable} via Route (${transfer.id})`;
     const doc = await databases.updateDocument(db, payoutsCol, data.requestId, {
       status: "paid",
@@ -1010,4 +1054,136 @@ export const adminSetNoShowStatus = createServerFn({ method: "POST" })
       ...(data.note ? { admin_note: data.note } : {}),
     });
     return { ok: true };
+  });
+
+// ── Contact messages + admin audit log ───────────────────────────────────────
+
+function contactEnv() {
+  const db = readEnv("VITE_APPWRITE_DATABASE_ID") || readEnv("APPWRITE_DATABASE_ID");
+  const col =
+    readEnv("VITE_APPWRITE_COLLECTION_CONTACT_MESSAGES") ||
+    readEnv("APPWRITE_COLLECTION_CONTACT_MESSAGES") ||
+    "coolpool_contact_messages";
+  if (!db) throw new Error("Appwrite database is not configured on the server.");
+  return { db, col };
+}
+
+export interface ContactMessage {
+  id: string;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  status: "open" | "resolved";
+  createdAt: string;
+}
+
+function toContactMessage(doc: any): ContactMessage {
+  return {
+    id: String(doc.$id || ""),
+    name: String(doc.name || ""),
+    email: String(doc.email || ""),
+    subject: String(doc.subject || ""),
+    message: String(doc.message || ""),
+    status: doc.status === "resolved" ? "resolved" : "open",
+    createdAt: String(doc.$createdAt || ""),
+  };
+}
+
+/** Public: store a message from the Contact form (no auth required). */
+export const submitContactMessage = createServerFn({ method: "POST" })
+  .inputValidator((input: { name: string; email?: string; subject?: string; message: string }) => {
+    const name = String(input?.name ?? "").trim().slice(0, 128);
+    const message = String(input?.message ?? "").trim().slice(0, 4000);
+    if (!name || !message) throw new Error("Name and message are required.");
+    return {
+      name,
+      email: String(input?.email ?? "").trim().slice(0, 256),
+      subject: String(input?.subject ?? "").trim().slice(0, 128),
+      message,
+    };
+  })
+  .handler(async ({ data }): Promise<{ ok: true }> => {
+    const { db, col } = contactEnv();
+    const databases = new Databases(adminClient());
+    await databases.createDocument(db, col, ID.unique(), {
+      name: data.name,
+      email: data.email || null,
+      subject: data.subject || null,
+      message: data.message,
+      status: "open",
+    });
+    return { ok: true };
+  });
+
+/** Admin: list contact-form messages (newest first). */
+export const adminListContactMessages = createServerFn({ method: "POST" })
+  .inputValidator((input: { jwt: string }) => ({ jwt: String(input?.jwt ?? "").trim() }))
+  .handler(async ({ data }): Promise<ContactMessage[]> => {
+    await assertAdmin(data.jwt);
+    const { db, col } = contactEnv();
+    const databases = new Databases(adminClient());
+    const res = await databases.listDocuments(db, col, [
+      Query.orderDesc("$createdAt"),
+      Query.limit(300),
+    ]);
+    return res.documents.map(toContactMessage);
+  });
+
+/** Admin: mark a contact message open/resolved. */
+export const adminSetContactStatus = createServerFn({ method: "POST" })
+  .inputValidator((input: { jwt: string; id: string; status: "open" | "resolved" }) => ({
+    jwt: String(input?.jwt ?? "").trim(),
+    id: String(input?.id ?? "").trim(),
+    status: input?.status === "resolved" ? ("resolved" as const) : ("open" as const),
+  }))
+  .handler(async ({ data }): Promise<{ ok: true }> => {
+    const admin = await assertAdmin(data.jwt);
+    if (!data.id) throw new Error("Missing message.");
+    const { db, col } = contactEnv();
+    const databases = new Databases(adminClient());
+    await databases.updateDocument(db, col, data.id, { status: data.status });
+    await logAction(admin, "contact_status", { type: "contact", id: data.id }, `→ ${data.status}`);
+    return { ok: true };
+  });
+
+export interface AdminLogEntry {
+  id: string;
+  adminId: string;
+  adminName: string;
+  action: string;
+  targetType: string;
+  targetId: string;
+  targetLabel: string;
+  details: string;
+  createdAt: string;
+}
+
+/** Admin: read the audit log (newest first). */
+export const adminListActionLog = createServerFn({ method: "POST" })
+  .inputValidator((input: { jwt: string }) => ({ jwt: String(input?.jwt ?? "").trim() }))
+  .handler(async ({ data }): Promise<AdminLogEntry[]> => {
+    await assertAdmin(data.jwt);
+    const db = readEnv("VITE_APPWRITE_DATABASE_ID") || readEnv("APPWRITE_DATABASE_ID");
+    const col =
+      readEnv("VITE_APPWRITE_COLLECTION_ADMIN_LOG") ||
+      readEnv("APPWRITE_COLLECTION_ADMIN_LOG") ||
+      "coolpool_admin_log";
+    if (!db) return [];
+    const databases = new Databases(adminClient());
+    const res = await databases.listDocuments(db, col, [
+      Query.orderDesc("$createdAt"),
+      Query.limit(300),
+    ]);
+    return res.documents.map((d: any) => ({
+      id: String(d.$id || ""),
+      adminId: String(d.admin_id || ""),
+      adminName: String(d.admin_name || ""),
+      action: String(d.action || ""),
+      targetType: String(d.target_type || ""),
+      targetId: String(d.target_id || ""),
+      targetLabel: String(d.target_label || ""),
+      details: String(d.details || ""),
+      createdAt: String(d.$createdAt || ""),
+    }));
   });

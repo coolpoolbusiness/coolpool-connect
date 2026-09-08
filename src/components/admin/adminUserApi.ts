@@ -14,6 +14,11 @@ import {
   adminSetMemberVerification,
   adminSetNoShowStatus,
   adminUpdatePayoutRequestStatus,
+  adminListContactMessages,
+  adminSetContactStatus,
+  adminListActionLog,
+  type ContactMessage,
+  type AdminLogEntry,
 } from "@/integrations/appwrite/account-server";
 import type { PayoutRequest, PayoutStatus } from "@/lib/domain";
 
@@ -191,4 +196,25 @@ export async function setNoShowStatusAsAdmin(
 ): Promise<void> {
   const { jwt } = await account.createJWT();
   await adminSetNoShowStatus({ data: { jwt, reportId, status, note } });
+}
+
+/** Admin: list contact-form messages. */
+export async function listContactMessagesAsAdmin(): Promise<ContactMessage[]> {
+  const { jwt } = await account.createJWT();
+  return adminListContactMessages({ data: { jwt } });
+}
+
+/** Admin: mark a contact message open/resolved. */
+export async function setContactStatusAsAdmin(
+  id: string,
+  status: "open" | "resolved",
+): Promise<void> {
+  const { jwt } = await account.createJWT();
+  await adminSetContactStatus({ data: { jwt, id, status } });
+}
+
+/** Admin: read the action/audit log. */
+export async function listActionLogAsAdmin(): Promise<AdminLogEntry[]> {
+  const { jwt } = await account.createJWT();
+  return adminListActionLog({ data: { jwt } });
 }
