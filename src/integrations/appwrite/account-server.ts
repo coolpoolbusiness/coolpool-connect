@@ -7,7 +7,13 @@
 import { createServerFn } from "@tanstack/react-start";
 import { Client, Users, Account, Databases, Storage, Query, ID, Permission, Role } from "node-appwrite";
 import { normalizeEmail, normalizeLicense, normalizePhone } from "@/lib/identity-normalizers";
-import { formatMemberCode, type MemberCodeRole } from "@/lib/memberCode";
+import {
+  formatMemberCode,
+  reassignMemberCode,
+  normalizeGenderChar,
+  type MemberCodeRole,
+  type MemberRoleChar,
+} from "@/lib/memberCode";
 import { nextMemberCodeSequence } from "@/integrations/appwrite/member-code-counter.server";
 import type { PayoutRequest, PayoutStatus } from "@/lib/domain";
 
@@ -367,6 +373,49 @@ export const adminUpdatePayoutRequestStatus = createServerFn({ method: "POST" })
     }
     const doc = await databases.updateDocument(db, payoutsCol, data.requestId, payload);
     return toPayoutRequest(doc);
+  });
+
+/**
+ * Admin sets a member's role letter (and gender) on their member code —
+ * e.g. stamp "AM" (Admin Male) for VIP numbers, or DM/EM for drivers/employees.
+ * Keeps the YYMM prefix + sequence when a current-format code already exists,
+ * otherwise mints a fresh one. Stored in the user's prefs.memberCode.
+ */
+export const adminSetMemberRole = createServerFn({ method: "POST" })
+  .inputValidator(
+    (input: { jwt: string; userId: string; roleChar: string; gender?: string | null }) => ({
+      jwt: String(input?.jwt ?? "").trim(),
+      userId: String(input?.userId ?? "").trim(),
+      roleChar: String(input?.roleChar ?? "G").trim().toUpperCase().slice(0, 1),
+      gender: input?.gender == null ? null : String(input.gender),
+    }),
+  )
+  .handler(async ({ data }): Promise<{ memberCode: string }> => {
+    await assertAdmin(data.jwt);
+    if (!data.userId) throw new Error("Missing user.");
+    const roleChar = (["A", "H", "G", "D", "E"].includes(data.roleChar)
+      ? data.roleChar
+      : "G") as MemberRoleChar;
+
+    const users = adminUsers();
+    const user = await users.get(data.userId);
+    const prefs = (user.prefs ?? {}) as Record<string, unknown>;
+    const existing = typeof prefs.memberCode === "string" ? prefs.memberCode : "";
+
+    let code = reassignMemberCode(existing, roleChar, data.gender);
+    if (!code) {
+      // No current-format code yet — mint a fresh sequence and build one.
+      const databases = new Databases(adminClient());
+      const seq = await nextMemberCodeSequence(databases);
+      const created = new Date(user.$createdAt || Date.now());
+      const yy = String(created.getUTCFullYear()).slice(-2);
+      const mm = String(created.getUTCMonth() + 1).padStart(2, "0");
+      const seqPadded = String(Math.max(0, seq)).padStart(4, "0");
+      code = `${yy}${mm}-CP${roleChar}${normalizeGenderChar(data.gender)}-${seqPadded}`;
+    }
+
+    await users.updatePrefs(data.userId, { ...prefs, memberCode: code });
+    return { memberCode: code };
   });
 
 /**

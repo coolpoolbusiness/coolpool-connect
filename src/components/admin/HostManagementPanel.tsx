@@ -26,6 +26,7 @@ import { passengerGenderLabel, passengerSeatLabel } from "@/lib/passenger-displa
 import { hostNetEarnings } from "@/lib/pricing";
 import { formatVehicleCode } from "@/lib/vehicleCode";
 import { CreateUserButton, ResetPasswordButton } from "./AdminUserActions";
+import { MemberCodeEditor } from "./MemberCodeEditor";
 import type { DriverProfile, Trip } from "@/lib/domain";
 import { account } from "@/integrations/appwrite/client";
 import {
@@ -385,6 +386,8 @@ export function HostManagementPanel({ initialSearch = "" }: { initialSearch?: st
               </Popconfirm>
               <ResetPasswordButton userId={selected.userId} />
             </Space>
+
+            <MemberCodeEditor userId={selected.userId} currentCode={selected.memberCode} />
                   </div>
                 ),
               },

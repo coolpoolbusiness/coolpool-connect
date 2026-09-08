@@ -10,6 +10,7 @@ import {
   adminListPayoutRequests,
   adminPayoutViaRoute,
   adminResetPassword,
+  adminSetMemberRole,
   adminSetMemberVerification,
   adminSetNoShowStatus,
   adminUpdatePayoutRequestStatus,
@@ -111,6 +112,16 @@ export async function createPayoutEntryAsAdmin(input: {
     adminCreatePayoutEntry({ data: { jwt, ...input } }),
     "Recording the payment is taking too long. Please reload and try again.",
   );
+}
+
+/** Admin stamps a role letter (A/H/G/D/E) + gender onto a user's member code. */
+export async function setMemberRoleAsAdmin(input: {
+  userId: string;
+  roleChar: string;
+  gender?: string | null;
+}): Promise<{ memberCode: string }> {
+  const { jwt } = await account.createJWT();
+  return adminSetMemberRole({ data: { jwt, ...input } });
 }
 
 /** Admin pays a host automatically via Razorpay Route (linked account + transfer). */

@@ -13,6 +13,7 @@ import { hostNetEarnings } from "@/lib/pricing";
 import { passengerGenderLabel, passengerSeatLabel } from "@/lib/passenger-display";
 import { formatVehicleCode } from "@/lib/vehicleCode";
 import { CreateUserButton, ResetPasswordButton } from "./AdminUserActions";
+import { MemberCodeEditor } from "./MemberCodeEditor";
 import { getUserCodesAsAdmin } from "./adminUserApi";
 import type { Booking, Trip } from "@/lib/domain";
 
@@ -273,6 +274,8 @@ export function GuestManagementPanel({ initialSearch = "" }: { initialSearch?: s
               </div>
               <div className="text-muted-foreground">{selected.bookings.length} booking(s)</div>
             </div>
+
+            <MemberCodeEditor userId={selected.userId} currentCode={selected.memberCode} />
 
             <div>
               <Text strong className="block mb-2">
