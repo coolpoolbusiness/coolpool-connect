@@ -14,8 +14,10 @@ import {
   message,
   Drawer,
   Popconfirm,
+  Dropdown,
 } from "antd";
-import { Plus, WalletCards, Zap, QrCode, Download } from "lucide-react";
+import type { MenuProps } from "antd";
+import { Plus, WalletCards, Zap, QrCode, Download, MoreHorizontal } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { downloadCsv } from "@/lib/csv";
 import { listDriverProfiles, listAllTrips, listAllBookings } from "@/data/appwrite-repository";
@@ -63,11 +65,6 @@ function transferredOf(r: PayoutRequest): number {
   if (r.status === "paid") return payableOf(r);
   if (r.status === "part_paid") return Math.min(r.paidAmount ?? 0, payableOf(r));
   return 0;
-}
-
-function maskAccountNumber(accountNumber: string): string {
-  if (accountNumber.length <= 4) return accountNumber;
-  return `••••${accountNumber.slice(-4)}`;
 }
 
 function formatMoney(amount: number): string {
@@ -411,27 +408,90 @@ export function PayoutsPanel() {
   const detailOpen = detailHostId ? (openByHost.get(detailHostId) ?? 0) : 0;
   const detailAvailable = detailHostId ? availableFor(detailHostId) : 0;
 
-  // Same-line status chips: the current status is highlighted; tapping another
-  // one transitions the row (Paid/Part paid/Rejected go through a small modal
-  // for UTR / amount-sent / reason; Pending & Processing switch directly).
-  const renderStatusChips = (record: PayoutRequest) => {
-    const changeTo = (status: PayoutStatus) => {
-      if (status === record.status) return;
-      if (status === "pending" || status === "processing") {
-        simpleStatusMutation.mutate({ id: record.id, status });
+  // Transition a request to a new status. Pending/Processing switch directly;
+  // Paid/Part paid/Rejected open a small modal for UTR / amount-sent / reason.
+  const transitionTo = (record: PayoutRequest, status: PayoutStatus) => {
+    if (status === record.status) return;
+    if (status === "pending" || status === "processing") {
+      simpleStatusMutation.mutate({ id: record.id, status });
+      return;
+    }
+    if (status === "paid") {
+      const payableHeadroom = rawAvailableFor(record.driverUserId) + record.amount;
+      if (record.amount > payableHeadroom) {
+        message.error(
+          `Cannot pay ${formatMoney(record.amount)}. Only ${formatMoney(Math.max(0, payableHeadroom))} is payable after earlier payouts.`,
+        );
         return;
       }
-      if (status === "paid") {
-        const payableHeadroom = rawAvailableFor(record.driverUserId) + record.amount;
-        if (record.amount > payableHeadroom) {
-          message.error(
-            `Cannot pay ${formatMoney(record.amount)}. Only ${formatMoney(Math.max(0, payableHeadroom))} is payable after earlier payouts.`,
-          );
-          return;
-        }
+    }
+    openAction(record, status as "paid" | "rejected" | "part_paid");
+  };
+
+  // Compact per-row actions for the requests table: one primary "Mark paid"
+  // plus an overflow menu for the rarer transitions / Route / UPI QR. Keeps the
+  // row clean; full details live in the row's detail drawer.
+  const renderRowActions = (record: PayoutRequest) => {
+    const isOpen =
+      record.status === "pending" ||
+      record.status === "processing" ||
+      record.status === "part_paid";
+    const items: MenuProps["items"] = [];
+    if (record.status !== "processing")
+      items.push({ key: "processing", label: "Mark as processing" });
+    if (record.status !== "part_paid") items.push({ key: "part_paid", label: "Part paid…" });
+    items.push({ key: "deduction", label: "Edit deduction…" });
+    if (record.status !== "rejected")
+      items.push({ key: "rejected", label: "Reject…", danger: true });
+    if (record.status !== "pending") items.push({ key: "pending", label: "Back to pending" });
+    if (isOpen && ((ROUTE_ENABLED && !!record.accountNumber) || !!record.upiId))
+      items.push({ type: "divider" });
+    if (isOpen && ROUTE_ENABLED && !!record.accountNumber)
+      items.push({ key: "route", label: "Pay via Route (auto)" });
+    if (isOpen && !!record.upiId) items.push({ key: "upiqr", label: "Pay by UPI QR" });
+
+    const onMenu: MenuProps["onClick"] = ({ key, domEvent }) => {
+      domEvent.stopPropagation();
+      if (key === "route") {
+        Modal.confirm({
+          title: "Pay via Razorpay Route?",
+          content: `Transfer ${formatMoney(payableOf(record) - transferredOf(record))} to ${record.accountHolderName || "the host"}'s bank automatically.`,
+          okText: "Pay now",
+          onOk: () => routeMutation.mutate({ requestId: record.id }),
+        });
+        return;
       }
-      openAction(record, status as "paid" | "rejected" | "part_paid");
+      if (key === "upiqr") return setQrRequest(record);
+      if (key === "deduction") return openAction(record, "deduction");
+      transitionTo(record, key as PayoutStatus);
     };
+
+    return (
+      <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+        {record.status !== "paid" && record.status !== "rejected" && (
+          <Button
+            size="small"
+            type="primary"
+            onClick={() => transitionTo(record, "paid")}
+            className="rounded-full bg-gradient-primary border-none text-xs font-semibold"
+          >
+            Mark paid
+          </Button>
+        )}
+        <Dropdown menu={{ items, onClick: onMenu }} trigger={["click"]}>
+          <Button
+            size="small"
+            icon={<MoreHorizontal size={16} />}
+            onClick={(e) => e.stopPropagation()}
+          />
+        </Dropdown>
+      </div>
+    );
+  };
+
+  // Full status chips — used in the detail drawer where there's room.
+  const renderStatusChips = (record: PayoutRequest) => {
+    const changeTo = (status: PayoutStatus) => transitionTo(record, status);
 
     return (
       <div className="flex flex-wrap gap-1 max-w-[210px]">
@@ -677,10 +737,6 @@ export function PayoutsPanel() {
                           : `⚠ ₹${r.amount} > ₹${Math.max(0, headroom).toLocaleString("en-IN")} payable`}
                       </div>
                     )}
-                    <div className="text-xs text-muted-foreground">
-                      {r.accountHolderName} · {maskAccountNumber(r.accountNumber)} · {r.ifscCode}
-                      {r.upiId ? ` · UPI: ${r.upiId}` : ""}
-                    </div>
                   </div>
                 );
               },
@@ -701,62 +757,41 @@ export function PayoutsPanel() {
                 ),
             },
             {
-              title: "Status",
-              key: "status",
-              render: (_, r) => renderStatusChips(r),
-            },
-            {
-              title: "UTR / Ref",
-              key: "reference",
+              title: "Payable",
+              key: "payable",
               render: (_, r) => (
-                <div className="text-sm max-w-[140px]">
-                  <Text className="font-mono text-xs break-all">{r.paymentReference || "—"}</Text>
-                  {r.adminNote && (
-                    <div className="text-xs text-muted-foreground">Note: {r.adminNote}</div>
+                <div>
+                  <Text strong className="!text-emerald-600">
+                    {formatMoney(payableOf(r))}
+                  </Text>
+                  {(r.deduction ?? 0) > 0 && (
+                    <div className="text-[10px] text-rose-500">
+                      −{formatMoney(r.deduction ?? 0)} deducted
+                    </div>
                   )}
                 </div>
               ),
             },
             {
-              title: "Total",
-              key: "amount",
+              title: "Status",
+              key: "status",
               render: (_, r) => (
-                <div className="text-sm">
-                  <Text strong>{formatMoney(r.amount)}</Text>
-                  <div className="text-xs text-muted-foreground">
-                    fee <CommissionCell request={r} />
-                  </div>
+                <div>
+                  <Tag color={STATUS_COLORS[r.status]} bordered={false} className="rounded-full">
+                    {STATUS_LABELS[r.status]}
+                  </Tag>
+                  {r.status === "part_paid" && (
+                    <div className="text-[10px] text-muted-foreground">
+                      {formatMoney(r.paidAmount ?? 0)} of {formatMoney(payableOf(r))} sent
+                    </div>
+                  )}
                 </div>
               ),
             },
             {
-              title: "Deduction",
-              key: "deduction",
-              render: (_, r) => (
-                <button
-                  type="button"
-                  className="text-left"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    openAction(r, "deduction");
-                  }}
-                  title="Edit deduction"
-                >
-                  <Text className={r.deduction ? "!text-rose-600 font-semibold" : ""}>
-                    {formatMoney(r.deduction ?? 0)}
-                  </Text>
-                  <div className="text-[10px] text-muted-foreground underline">edit</div>
-                </button>
-              ),
-            },
-            {
-              title: "Payable",
-              key: "payable",
-              render: (_, r) => (
-                <Text strong className="!text-emerald-600">
-                  {formatMoney(payableOf(r))}
-                </Text>
-              ),
+              title: "Actions",
+              key: "actions",
+              render: (_, r) => renderRowActions(r),
             },
           ]}
         />
@@ -878,6 +913,18 @@ export function PayoutsPanel() {
                   <div>
                     <div className="text-xs text-muted-foreground">Amount (net to host)</div>
                     <div className="font-bold">{formatMoney(detailRequest.amount)}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-muted-foreground">Deduction</div>
+                    <div className={`font-semibold ${detailRequest.deduction ? "text-rose-600" : ""}`}>
+                      {formatMoney(detailRequest.deduction ?? 0)}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-muted-foreground">Payable</div>
+                    <div className="font-bold text-emerald-600">
+                      {formatMoney(payableOf(detailRequest))}
+                    </div>
                   </div>
                   <div>
                     <div className="text-xs text-muted-foreground">
