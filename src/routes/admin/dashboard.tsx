@@ -42,7 +42,11 @@ import {
 } from "@/data/appwrite-repository";
 import { BannersManager } from "@/components/admin/BannersManager";
 import { PricingPanel } from "@/components/admin/PricingPanel";
-import { listPayoutRequestsAsAdmin } from "@/components/admin/adminUserApi";
+import {
+  listPayoutRequestsAsAdmin,
+  listMemberVerificationsAsAdmin,
+  listNoShowReportsAsAdmin,
+} from "@/components/admin/adminUserApi";
 import { DeletedAccountsPanel } from "@/components/admin/DeletedAccountsPanel";
 import { OverviewPanel } from "@/components/admin/OverviewPanel";
 import { GuestManagementPanel } from "@/components/admin/GuestManagementPanel";
@@ -174,6 +178,30 @@ function AdminDashboardPage() {
       "Payouts"
     );
 
+  // Pending items for the Verifications nav badge (selfies waiting + open no-shows).
+  const { data: verifData = [] } = useQuery({
+    queryKey: ["admin-verifications"],
+    queryFn: listMemberVerificationsAsAdmin,
+    enabled: isAdmin,
+  });
+  const { data: noshowData = [] } = useQuery({
+    queryKey: ["admin-noshows"],
+    queryFn: listNoShowReportsAsAdmin,
+    enabled: isAdmin,
+  });
+  const openVerifications =
+    verifData.filter((s: { status?: string }) => s.status === "pending").length +
+    noshowData.filter((r: { status?: string }) => r.status === "open").length;
+  const verificationsLabel =
+    openVerifications > 0 ? (
+      <span className="inline-flex items-center gap-2">
+        Verifications
+        <Badge count={openVerifications} size="small" color="#faad14" />
+      </span>
+    ) : (
+      "Verifications"
+    );
+
   const navItems = [
     { key: "overview", icon: <LayoutDashboard size={20} />, label: "Overview" },
     { key: "guests", icon: <Ticket size={20} />, label: "Guest Management" },
@@ -181,7 +209,7 @@ function AdminDashboardPage() {
     { key: "trips", icon: <RouteIcon size={20} />, label: "Trip Manager" },
     { key: "bookings", icon: <Ticket size={20} />, label: "Booking Manager" },
     { key: "payouts", icon: <Wallet size={20} />, label: payoutsLabel },
-    { key: "verifications", icon: <ShieldCheck size={20} />, label: "Verifications" },
+    { key: "verifications", icon: <ShieldCheck size={20} />, label: verificationsLabel },
     { key: "kyc", icon: <IdCard size={20} />, label: "Driver KYC" },
     { key: "pricing", icon: <Settings size={20} />, label: "Pricing Rules" },
     { key: "banners", icon: <ImageIcon size={20} />, label: "Banners Manager" },

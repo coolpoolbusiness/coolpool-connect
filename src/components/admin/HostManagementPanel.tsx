@@ -8,6 +8,7 @@ import {
   Button,
   Input,
   Drawer,
+  Tabs,
   message,
   Popconfirm,
   Space,
@@ -330,7 +331,14 @@ export function HostManagementPanel({ initialSearch = "" }: { initialSearch?: st
         title={selected?.fullName}
       >
         {selected && detail && (
-          <div className="space-y-5">
+          <Tabs
+            defaultActiveKey="profile"
+            items={[
+              {
+                key: "profile",
+                label: "Profile",
+                children: (
+                  <div className="space-y-4">
             {/* Profile */}
             <div className="rounded-2xl bg-gray-50 p-4 space-y-1 text-sm">
               <div className="flex items-center justify-between">
@@ -377,8 +385,13 @@ export function HostManagementPanel({ initialSearch = "" }: { initialSearch?: st
               </Popconfirm>
               <ResetPasswordButton userId={selected.userId} />
             </Space>
-
-            {/* Vehicles */}
+                  </div>
+                ),
+              },
+              {
+                key: "vehicles",
+                label: `Vehicles (${detail.hostVehicles.length})`,
+                children: (
             <div>
               <Text strong className="flex items-center gap-1.5 mb-2">
                 <Car size={15} /> Vehicles ({detail.hostVehicles.length})
@@ -421,8 +434,12 @@ export function HostManagementPanel({ initialSearch = "" }: { initialSearch?: st
                 ))}
               </div>
             </div>
-
-            {/* Team drivers */}
+                ),
+              },
+              {
+                key: "drivers",
+                label: `Drivers (${detail.teamDrivers.length})`,
+                children: (
             <div>
               <Text strong className="flex items-center gap-1.5 mb-2">
                 <UsersIcon size={15} /> Drivers under this host ({detail.teamDrivers.length})
@@ -479,8 +496,12 @@ export function HostManagementPanel({ initialSearch = "" }: { initialSearch?: st
                 })}
               </div>
             </div>
-
-            {/* Hosted trips + who came */}
+                ),
+              },
+              {
+                key: "trips",
+                label: `Trips (${detail.hostTrips.length})`,
+                children: (
             <div>
               <Text strong className="block mb-2">
                 Trips hosted ({detail.hostTrips.length})
@@ -546,7 +567,10 @@ export function HostManagementPanel({ initialSearch = "" }: { initialSearch?: st
                 })}
               </div>
             </div>
-          </div>
+                ),
+              },
+            ]}
+          />
         )}
       </Drawer>
 
@@ -554,7 +578,7 @@ export function HostManagementPanel({ initialSearch = "" }: { initialSearch?: st
         open={!!tripDetail}
         onCancel={() => setSelectedTrip(null)}
         footer={null}
-        width={820}
+        width={Math.min(820, typeof window !== "undefined" ? window.innerWidth - 24 : 820)}
         title={
           tripDetail
             ? `${tripDetail.trip.fromLocation.split(",")[0]} → ${tripDetail.trip.toLocation.split(",")[0]}`

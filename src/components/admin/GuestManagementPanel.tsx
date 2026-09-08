@@ -333,7 +333,7 @@ export function GuestManagementPanel({ initialSearch = "" }: { initialSearch?: s
         open={!!tripDetail}
         onCancel={() => setSelectedBooking(null)}
         footer={null}
-        width={820}
+        width={Math.min(820, typeof window !== "undefined" ? window.innerWidth - 24 : 820)}
         title={
           tripDetail?.trip
             ? `${tripDetail.trip.fromLocation.split(",")[0]} → ${tripDetail.trip.toLocation.split(",")[0]}`
