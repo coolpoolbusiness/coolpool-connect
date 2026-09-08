@@ -1,6 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
+import { Button } from "@/components/ui/button";
 import { Users, ShieldCheck, Map, Plane } from "lucide-react";
 
 export const Route = createFileRoute("/about")({
@@ -82,6 +83,23 @@ function AboutPage() {
                   </p>
                 </div>
               </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-16">
+          <div className="rounded-3xl bg-gradient-primary px-6 py-12 text-center text-white shadow-glow">
+            <h2 className="text-2xl sm:text-3xl font-bold">Ready to ride together?</h2>
+            <p className="mx-auto mt-2 max-w-xl text-white/90">
+              Find an intercity ride or offer your own — fair prices, verified people.
+            </p>
+            <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <Button asChild size="lg" className="rounded-2xl bg-white px-8 text-primary hover:bg-white/90">
+                <Link to="/">Find a ride</Link>
+              </Button>
+              <Button asChild size="lg" variant="outline" className="rounded-2xl border-white/70 bg-transparent px-8 text-white hover:bg-white/10">
+                <Link to="/host">Host a ride</Link>
+              </Button>
             </div>
           </div>
         </section>

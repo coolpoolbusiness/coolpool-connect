@@ -416,7 +416,7 @@ function TripsPage() {
                 <Card
                   key={b.id}
                   ref={isJustBooked ? highlightRef : undefined}
-                  onClick={() => setExpandedId(b.id)}
+                  onClick={() => setExpandedId((cur) => (cur === b.id ? null : b.id))}
                   className={`p-5 rounded-3xl border bg-white/85 shadow-card hover:shadow-elevated transition-all cursor-pointer ${
                     isJustBooked
                       ? "border-emerald-400 ring-2 ring-emerald-400/40"

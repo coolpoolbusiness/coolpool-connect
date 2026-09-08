@@ -101,7 +101,9 @@ function RideInfoPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [carImageIdx, setCarImageIdx] = useState(0);
-  const [locView, setLocView] = useState<"street" | "route">("street");
+  // Default to the lightweight route map; the 360° Street View (heavier on
+  // mobile data) loads only when the traveller taps its tab.
+  const [locView, setLocView] = useState<"street" | "route">("route");
   // Rider-selected segment for shared links with no preset segment (multi-stop trips).
   const [pickedFromIndex, setPickedFromIndex] = useState<number | null>(null);
   const [pickedToIndex, setPickedToIndex] = useState<number | null>(null);
@@ -680,6 +682,12 @@ function RideInfoPage() {
             </Button>
           )}
         </div>
+        <p className="mx-auto mt-1.5 max-w-2xl text-center text-[11px] text-gray-400">
+          Fares are non-refundable ·{" "}
+          <Link to="/refund-policy" className="underline">
+            Refund Policy
+          </Link>
+        </p>
       </div>
 
       <SiteFooter />

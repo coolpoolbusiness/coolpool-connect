@@ -108,6 +108,14 @@ export function MessageThreadView({
                   }`}
                 >
                   <p className="whitespace-pre-wrap break-words">{m.body}</p>
+                  <p className={`mt-0.5 text-[10px] ${mine ? "text-white/70" : "text-gray-400"}`}>
+                    {m.createdAt
+                      ? new Date(m.createdAt).toLocaleTimeString("en-IN", {
+                          hour: "numeric",
+                          minute: "2-digit",
+                        })
+                      : ""}
+                  </p>
                 </div>
               </div>
             );

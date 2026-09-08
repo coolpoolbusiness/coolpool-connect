@@ -801,7 +801,8 @@ function MembersPage() {
                         className="h-12 rounded-3xl border-border/80 bg-background/80"
                       />
                       <p className="text-xs text-muted-foreground">
-                        Optional, but your password can only be reset through this email.
+                        Optional — a backup way to reset your PIN. You can also reset it anytime by
+                        phone OTP.
                       </p>
                     </div>
                     <Button

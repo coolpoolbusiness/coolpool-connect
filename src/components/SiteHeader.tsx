@@ -118,6 +118,21 @@ export function SiteHeader() {
               )}
             </Button>
 
+            {/* Inbox — parity with the mobile bottom-nav tab (with unread badge) */}
+            {user && (
+              <Button asChild variant="ghost" className="rounded-3xl relative">
+                <Link to="/inbox">
+                  <MessageCircle className="h-4 w-4 mr-2" />
+                  Inbox
+                  {unread > 0 && (
+                    <span className="ml-1 grid h-5 min-w-5 place-items-center rounded-full bg-primary px-1 text-[10px] font-bold text-white">
+                      {unread > 9 ? "9+" : unread}
+                    </span>
+                  )}
+                </Link>
+              </Button>
+            )}
+
             {/* Dashboard — hidden for members; routes to host login when signed out */}
             {!user ? (
               <Button asChild variant="hero" className="rounded-3xl">
